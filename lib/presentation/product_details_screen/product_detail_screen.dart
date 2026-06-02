@@ -92,7 +92,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _dynamicSellerName = _productData['sellerName'] as String?;
-    _dynamicBrandName = _productData['brandName'] as String?;
+    _dynamicBrandName = _productData['brandName'] as String? ?? 
+                      _productData['brand']?['name'] as String?;
     if (_dynamicSellerName == null ||
         _dynamicSellerName!.isEmpty ||
         _dynamicBrandName == null ||
@@ -112,6 +113,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }
           if (detail.brandName != null && detail.brandName!.isNotEmpty) {
             _dynamicBrandName = detail.brandName;
+          } else if (detail.brand != null && detail.brand!['name'] != null) {
+            _dynamicBrandName = detail.brand!['name'] as String?;
           }
         });
       }
