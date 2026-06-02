@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_export.dart';
+import '../core/services/auth_service.dart';
 
 extension ImageTypeExtension on String {
   ImageType get imageType {
-    if (startsWith('http') || startsWith('https')) {
+    if (startsWith('http') || startsWith('https') || startsWith('/')) {
       return ImageType.network;
     } else if (endsWith('.svg')) {
       return ImageType.svg;
@@ -109,6 +110,12 @@ class CustomImageWidget extends StatelessWidget {
 
   Widget _buildImageView() {
     if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
+      // Handle relative URLs by prepending base URL
+      String finalImageUrl = imageUrl!;
+      if (imageUrl!.startsWith('/')) {
+        finalImageUrl = '${AuthService.baseUrl}$imageUrl';
+      }
+      
       switch (imageUrl!.imageType) {
         case ImageType.svg:
           return SizedBox(
@@ -143,7 +150,7 @@ class CustomImageWidget extends StatelessWidget {
           if (kIsWeb) {
             // Simplified for Web to maximize compatibility with CORS/Edge
             return Image.network(
-              imageUrl!,
+              finalImageUrl,
               height: height,
               width: width,
               fit: fit ?? BoxFit.cover,
@@ -175,7 +182,7 @@ class CustomImageWidget extends StatelessWidget {
             height: height,
             width: width,
             fit: fit,
-            imageUrl: imageUrl!,
+            imageUrl: finalImageUrl,
             color: color,
             placeholder: (context, url) => SizedBox(
               height: 30,
