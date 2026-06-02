@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
 import '../../core/providers/category_provider.dart';
-import '../../core/services/brand_service.dart';
 import '../../core/services/seller_service.dart';
 import '../../widgets/custom_app_bar.dart';
 
@@ -25,18 +24,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
   
   late int? _selectedCategoryId;
   late int? _selectedSubCategoryId;
-  late int? _selectedBrandId;
   
   final _newCategoryController = TextEditingController();
   final _newSubCategoryController = TextEditingController();
+  final _brandNameController = TextEditingController();
   bool _useNewCategory = false;
   bool _useNewSubCategory = false;
 
   final List<XFile> _selectedImages = [];
   final List<XFile> _existingImages = [];
   bool _isSubmitting = false;
-  List<Map<String, dynamic>> _brands = [];
-  bool _isLoadingBrands = false;
 
   final ImagePicker _picker = ImagePicker();
   late final int _productId;
@@ -48,17 +45,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _nameController = TextEditingController(text: widget.productData['name'] ?? '');
     _priceController = TextEditingController(text: widget.productData['price']?.toString() ?? '');
     _descriptionController = TextEditingController(text: widget.productData['description'] ?? '');
-    _selectedBrandId = widget.productData['brandId'];
+    _brandNameController = TextEditingController(text: widget.productData['brandName'] ?? widget.productData['brand']?['name'] ?? '');
     
     // Try to get category/subcategory IDs from product data
     _selectedCategoryId = widget.productData['categoryId'];
     _selectedSubCategoryId = widget.productData['subCategoryId'];
     
-    // Fetch categories and brands when the screen opens
+    // Fetch categories when the screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final categoryProvider = context.read<CategoryProvider>();
       categoryProvider.fetchCategories();
-      _fetchBrands();
       
       // Find category/subcategory IDs by name if IDs are null
       if (_selectedCategoryId == null && widget.productData['categoryName'] != null) {
@@ -92,23 +88,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     });
   }
 
-  Future<void> _fetchBrands() async {
-    setState(() => _isLoadingBrands = true);
-    try {
-      final brands = await BrandService.getBrands();
-      if (mounted) {
-        setState(() {
-          _brands = brands;
-          _isLoadingBrands = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingBrands = false);
-      }
-    }
-  }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -116,6 +95,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _descriptionController.dispose();
     _newCategoryController.dispose();
     _newSubCategoryController.dispose();
+    _brandNameController.dispose();
     super.dispose();
   }
 
@@ -186,7 +166,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           'subCategoryId': _useNewSubCategory ? 0 : _selectedSubCategoryId!,
           'categoryName': _useNewCategory ? _newCategoryController.text.trim() : null,
           'subCategoryName': _useNewSubCategory ? _newSubCategoryController.text.trim() : null,
-          'brandId': _selectedBrandId,
+          'brandName': _brandNameController.text.trim(),
           'imageFiles': imagePaths,
         },
       );
@@ -415,31 +395,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Widget _buildBrandDropdown() {
-    return _isLoadingBrands
-        ? const Center(child: CircularProgressIndicator())
-        : DropdownButtonFormField<int>(
-            value: _selectedBrandId,
-            decoration: InputDecoration(
-              labelText: 'Select Brand',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            items: _brands.isEmpty
-                ? [
-                    DropdownMenuItem<int>(
-                      value: null,
-                      child: Text('No brands available'),
-                    ),
-                  ]
-                : _brands.map((brand) {
-                    return DropdownMenuItem<int>(
-                      value: brand['brandId'] as int?,
-                      child: Text(brand['name'] ?? 'Unknown'),
-                    );
-                  }).toList(),
-            onChanged: (val) {
-              setState(() => _selectedBrandId = val);
-            },
-          );
+    return _buildTextField(
+      controller: _brandNameController,
+      label: 'Brand Name',
+      hint: 'e.g. Nike, Apple, Samsung',
+    );
   }
 
   Widget _buildCategoryDropdown(CategoryProvider provider) {
