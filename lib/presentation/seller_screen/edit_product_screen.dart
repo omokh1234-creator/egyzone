@@ -64,24 +64,30 @@ class _EditProductScreenState extends State<EditProductScreen> {
       
       // Find category/subcategory IDs by name if IDs are null
       if (_selectedCategoryId == null && widget.productData['categoryName'] != null) {
-        final category = categoryProvider.categories.firstWhere(
-          (c) => c.name == widget.productData['categoryName'],
-          orElse: () => categoryProvider.categories.first,
-        );
-        _selectedCategoryId = category.categoryId;
+        if (categoryProvider.categories.isNotEmpty) {
+          final category = categoryProvider.categories.firstWhere(
+            (c) => c.name == widget.productData['categoryName'],
+            orElse: () => categoryProvider.categories.first,
+          );
+          _selectedCategoryId = category.categoryId;
+        }
       }
       
       if (_selectedSubCategoryId == null && widget.productData['subCategoryName'] != null) {
-        final categoryName = widget.productData['categoryName'];
-        final category = categoryProvider.categories.firstWhere(
-          (c) => c.name == categoryName,
-          orElse: () => categoryProvider.categories.first,
-        );
-        final subCategory = category.subCategories.firstWhere(
-          (s) => s.name == widget.productData['subCategoryName'],
-          orElse: () => category.subCategories.first,
-        );
-        _selectedSubCategoryId = subCategory.subCategoryId;
+        if (categoryProvider.categories.isNotEmpty) {
+          final categoryName = widget.productData['categoryName'];
+          final category = categoryProvider.categories.firstWhere(
+            (c) => c.name == categoryName,
+            orElse: () => categoryProvider.categories.first,
+          );
+          if (category.subCategories.isNotEmpty) {
+            final subCategory = category.subCategories.firstWhere(
+              (s) => s.name == widget.productData['subCategoryName'],
+              orElse: () => category.subCategories.first,
+            );
+            _selectedSubCategoryId = subCategory.subCategoryId;
+          }
+        }
       }
       
       setState(() {});
