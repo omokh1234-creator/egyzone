@@ -10,14 +10,18 @@ class BrandService {
         Uri.parse('${AuthService.baseUrl}/api/Brands'),
         headers: AuthService.publicHeaders,
       );
+      print('BrandService.getBrands response: ${response.statusCode} ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = AuthService.parseResponseList(response.body);
+        print('BrandService.getBrands parsed data: $data');
         return data
             .map((item) => item as Map<String, dynamic>)
             .toList();
       }
-    } catch (_) {}
+    } catch (e) {
+      print('BrandService.getBrands error: $e');
+    }
     return [];
   }
 
