@@ -68,7 +68,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           (c) => c.name == widget.productData['categoryName'],
           orElse: () => categoryProvider.categories.first,
         );
-        _selectedCategoryId = category.id;
+        _selectedCategoryId = category.categoryId;
       }
       
       if (_selectedSubCategoryId == null && widget.productData['subCategoryName'] != null) {
@@ -81,7 +81,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           (s) => s.name == widget.productData['subCategoryName'],
           orElse: () => category.subCategories.first,
         );
-        _selectedSubCategoryId = subCategory.id;
+        _selectedSubCategoryId = subCategory.subCategoryId;
       }
       
       setState(() {});
