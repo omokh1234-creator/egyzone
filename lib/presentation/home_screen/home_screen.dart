@@ -106,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
         brandId: brandId,
       );
       print('Fetched ${products.length} approved products');
+      print('Product IDs: ${products.map((p) => p.productId).toList()}');
       if (mounted) {
         // Sort by productId descending so latest products are at the top
         _allProducts = products..sort((a, b) => b.productId.compareTo(a.productId));
