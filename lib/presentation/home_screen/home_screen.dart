@@ -106,8 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
         brandId: brandId,
         pageSize: 100, // Increased to fetch more products
       );
-      print('Fetched ${products.length} approved products');
-      print('Product IDs: ${products.map((p) => p.productId).toList()}');
       if (mounted) {
         // Sort by productId descending so latest products are at the top
         _allProducts = products..sort((a, b) => b.productId.compareTo(a.productId));
@@ -118,7 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _applyFilter();
       }
     } catch (e) {
-      print('Error fetching products: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading products: $e')),

@@ -43,7 +43,6 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
   Future<void> _approveProduct(int id) async {
     try {
       final success = await AdminService.approveProduct(id);
-      print('Approve product $id: $success');
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product approved successfully!'), backgroundColor: Colors.green),
@@ -51,7 +50,6 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
         _fetchPendingProducts();
       }
     } catch (e) {
-      print('Error approving product: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to approve product: $e'), backgroundColor: Colors.red),
