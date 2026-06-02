@@ -46,15 +46,12 @@ class BrandService {
         headers: headers,
         body: jsonEncode({'name': name}),
       );
-      print('BrandService.createBrand response: ${response.statusCode} ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = AuthService.parseResponseMap(response.body);
         return data;
       }
-    } catch (e) {
-      print('BrandService.createBrand error: $e');
-    }
+    } catch (_) {}
     return null;
   }
 }

@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
 import '../../core/providers/category_provider.dart';
-import '../../core/services/brand_service.dart';
 import '../../core/services/seller_service.dart';
 import '../../widgets/custom_app_bar.dart';
 
@@ -29,10 +28,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
   
   final _newCategoryController = TextEditingController();
   final _newSubCategoryController = TextEditingController();
-  final _newBrandController = TextEditingController();
   bool _useNewCategory = false;
   bool _useNewSubCategory = false;
-  bool _useNewBrand = false;
 
   final List<XFile> _selectedImages = [];
   final List<XFile> _existingImages = [];
@@ -118,7 +115,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _descriptionController.dispose();
     _newCategoryController.dispose();
     _newSubCategoryController.dispose();
-    _newBrandController.dispose();
     super.dispose();
   }
 
@@ -170,28 +166,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
       );
       return;
     }
-    if (_useNewBrand && _newBrandController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a new brand name')),
-      );
-      return;
-    }
 
     setState(() => _isSubmitting = true);
-
-    int? finalBrandId = _selectedBrandId;
-    print('Edit product - Initial selectedBrandId: $_selectedBrandId');
-    print('Edit product - Use new brand: $_useNewBrand');
-    if (_useNewBrand) {
-      final newBrand = await BrandService.createBrand(_newBrandController.text.trim());
-      print('Edit product - Created brand response: $newBrand');
-      if (newBrand != null) {
-        finalBrandId = newBrand['brandId'];
-        print('Edit product - Final brandId from new brand: $finalBrandId');
-      }
-    }
-    print('Edit product - Final brandId to send: $finalBrandId');
-    print('Edit product - Selected categoryId: $_selectedCategoryId, subCategoryId: $_selectedSubCategoryId');
 
     try {
       final imagePaths = [
@@ -209,11 +185,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
           'subCategoryId': _useNewSubCategory ? 0 : _selectedSubCategoryId!,
           'categoryName': _useNewCategory ? _newCategoryController.text.trim() : null,
           'subCategoryName': _useNewSubCategory ? _newSubCategoryController.text.trim() : null,
-          'brandId': finalBrandId,
+          'brandId': _selectedBrandId,
           'imageFiles': imagePaths,
         },
       );
-      print('Edit product - Update success: $success');
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -439,53 +414,31 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Widget _buildBrandDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!_useNewBrand)
-          _isLoadingBrands
-              ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<int>(
-                  value: _selectedBrandId,
-                  decoration: InputDecoration(
-                    labelText: 'Select Brand',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  items: _brands.isEmpty
-                      ? [
-                          DropdownMenuItem<int>(
-                            value: null,
-                            child: Text('No brands available - create new'),
-                          ),
-                        ]
-                      : _brands.map((brand) {
-                          return DropdownMenuItem<int>(
-                            value: brand['brandId'] as int?,
-                            child: Text(brand['name'] ?? 'Unknown'),
-                          );
-                        }).toList(),
-                  onChanged: (val) {
-                    setState(() => _selectedBrandId = val);
-                  },
-                )
-        else
-          _buildTextField(
-            controller: _newBrandController,
-            label: 'New Brand Name',
-            hint: 'e.g. Nike, Apple, Samsung',
-          ),
-        TextButton.icon(
-          onPressed: () {
-            setState(() {
-              _useNewBrand = !_useNewBrand;
-              if (!_useNewBrand) _newBrandController.clear();
-            });
-          },
-          icon: Icon(_useNewBrand ? Icons.list : Icons.add_circle_outline, size: 18),
-          label: Text(_useNewBrand ? 'Select from list' : 'Create new brand'),
-        ),
-      ],
-    );
+    return _isLoadingBrands
+        ? const Center(child: CircularProgressIndicator())
+        : DropdownButtonFormField<int>(
+            value: _selectedBrandId,
+            decoration: InputDecoration(
+              labelText: 'Select Brand',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            items: _brands.isEmpty
+                ? [
+                    DropdownMenuItem<int>(
+                      value: null,
+                      child: Text('No brands available'),
+                    ),
+                  ]
+                : _brands.map((brand) {
+                    return DropdownMenuItem<int>(
+                      value: brand['brandId'] as int?,
+                      child: Text(brand['name'] ?? 'Unknown'),
+                    );
+                  }).toList(),
+            onChanged: (val) {
+              setState(() => _selectedBrandId = val);
+            },
+          );
   }
 
   Widget _buildCategoryDropdown(CategoryProvider provider) {
