@@ -53,7 +53,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isLoadingBrands = true);
     try {
       final brands = await BrandService.getBrands();
-      print('Fetched brands: $brands');
       if (mounted) {
         setState(() {
           _brands = brands;
@@ -61,7 +60,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         });
       }
     } catch (e) {
-      print('Error fetching brands: $e');
       if (mounted) {
         setState(() => _isLoadingBrands = false);
       }

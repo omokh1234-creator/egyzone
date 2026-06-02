@@ -190,17 +190,11 @@ class SellerService {
         headers: headers,
       );
 
-      debugPrint('Dashboard response status: ${response.statusCode}');
-      debugPrint('Dashboard response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = AuthService.parseResponseMap(response.body);
-        debugPrint('Dashboard parsed data: $data');
         return data;
       }
-    } catch (e) {
-      debugPrint('Dashboard error: $e');
-    }
+    } catch (_) {}
     return null;
   }
 }

@@ -79,7 +79,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                       _buildStatCard(
                         context,
                         title: 'Total Products',
-                        value: _dashboardStats?['totalProducts']?.toString() ?? '0',
+                        value: _dashboardStats?['overview']?['totalProducts']?.toString() ?? '0',
                         icon: Icons.inventory_2_rounded,
                         colors: [const Color(0xFF4CA1AF), const Color(0xFF2C3E50)],
                         fullWidth: true,
@@ -91,7 +91,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                             child: _buildStatCard(
                               context,
                               title: 'Total Orders',
-                              value: _dashboardStats?['totalOrders']?.toString() ?? '0',
+                              value: _dashboardStats?['overview']?['totalOrders']?.toString() ?? '0',
                               icon: Icons.shopping_cart_rounded,
                               colors: [const Color(0xFFFF9966), const Color(0xFFFF5E62)],
                             ),
@@ -101,7 +101,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                             child: _buildStatCard(
                               context,
                               title: 'Total Revenue',
-                              value: _dashboardStats?['totalRevenue']?.toString() ?? '0',
+                              value: _dashboardStats?['overview']?['totalRevenue']?.toString() ?? '0',
                               icon: Icons.attach_money_rounded,
                               colors: [const Color(0xFFED213A), const Color(0xFF93291E)],
                             ),
@@ -115,7 +115,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                             child: _buildStatCard(
                               context,
                               title: 'Pending Orders',
-                              value: _dashboardStats?['pendingOrders']?.toString() ?? '0',
+                              value: _dashboardStats?['overview']?['pendingOrders']?.toString() ?? '0',
                               icon: Icons.pending_actions_rounded,
                               colors: [const Color(0xFF667eea), const Color(0xFF764ba2)],
                             ),
@@ -125,7 +125,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                             child: _buildStatCard(
                               context,
                               title: 'Completed Orders',
-                              value: _dashboardStats?['completedOrders']?.toString() ?? '0',
+                              value: _dashboardStats?['overview']?['completedOrders']?.toString() ?? '0',
                               icon: Icons.check_circle_rounded,
                               colors: [const Color(0xFF11998e), const Color(0xFF38ef7d)],
                             ),
