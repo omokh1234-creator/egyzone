@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String _selectedRole = 'Customer';
 
   Future<void> _register() async {
     final fullName = _nameController.text.trim();
@@ -69,6 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      print('Registering with role: $_selectedRole');
       final response = await http.post(
         Uri.parse('${AuthService.baseUrl}/api/Auth/register'),
         headers: AuthService.publicHeaders,
@@ -77,6 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'email': email, // matches RegisterDto
           'password': password, // matches RegisterDto
           'phoneNumber': phoneNumber, // matches RegisterDto
+          'role': _selectedRole, // role selection
         }),
       );
 
@@ -192,6 +195,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 60),
+                  DropdownButtonFormField<String>(
+                    value: _selectedRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Register as',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Customer', child: Text('Customer')),
+                      DropdownMenuItem(value: 'Seller', child: Text('Seller')),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _selectedRole = value ?? 'Customer');
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Full Name'),
