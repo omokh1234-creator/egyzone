@@ -126,6 +126,9 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
               ? imageUrl 
               : (imageUrls != null && imageUrls.isNotEmpty ? imageUrls[0] : null);
 
+          debugPrint('Product seller data: ${product['seller']}');
+          debugPrint('Product full data: $product');
+
           return Card(
             margin: EdgeInsets.only(bottom: 1.5.h),
             child: ListTile(
