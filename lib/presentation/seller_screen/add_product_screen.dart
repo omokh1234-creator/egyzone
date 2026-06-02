@@ -130,17 +130,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isSubmitting = true);
 
     int? finalBrandId = _selectedBrandId;
-    print('Initial selectedBrandId: $_selectedBrandId');
-    print('Use new brand: $_useNewBrand');
     if (_useNewBrand) {
       final newBrand = await BrandService.createBrand(_newBrandController.text.trim());
-      print('Created brand response: $newBrand');
       if (newBrand != null) {
         finalBrandId = newBrand['brandId'];
-        print('Final brandId from new brand: $finalBrandId');
       }
     }
-    print('Final brandId to send: $finalBrandId');
 
     try {
       final success = await SellerService.createProduct(

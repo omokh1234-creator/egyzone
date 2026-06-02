@@ -94,8 +94,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _dynamicSellerName = _productData['sellerName'] as String?;
     _dynamicBrandName = _productData['brandName'] as String? ?? 
                       _productData['brand']?['name'] as String?;
-    print('Product data brand fields: brandName=${_productData['brandName']}, brand=${_productData['brand']}');
-    print('Initial dynamicBrandName: $_dynamicBrandName');
     if (_dynamicSellerName == null ||
         _dynamicSellerName!.isEmpty ||
         _dynamicBrandName == null ||
@@ -108,7 +106,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_productId == null) return;
     try {
       final detail = await ProductService.fetchProductDetail(_productId);
-      print('Fetched product detail: ${detail?.toMap()}');
       if (mounted && detail != null) {
         setState(() {
           if (detail.sellerName != null && detail.sellerName!.isNotEmpty) {
@@ -119,11 +116,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           } else if (detail.brand != null && detail.brand!['name'] != null) {
             _dynamicBrandName = detail.brand!['name'] as String?;
           }
-          print('Updated dynamicBrandName: $_dynamicBrandName');
         });
       }
-    } catch (e) {
-      print('Error fetching full details: $e');
+    } catch (_) {
       // Ignore errors silently
     }
   }
