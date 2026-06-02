@@ -148,12 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!_namesMatch(p.normalizedSubCategory, _selectedSubcategory)) return false;
       }
 
-      // 3. Brand check — use cache first (list API omits brand, detail has it)
+      // 3. Brand check — use normalized brand from product
       if (_selectedBrand.isNotEmpty) {
-        final brand = p.normalizedBrand.isNotEmpty 
-            ? p.normalizedBrand 
-            : Product.normalize(_brandCache[p.productId]);
-        if (!_namesMatch(brand, _selectedBrand)) return false;
+        if (!_namesMatch(p.normalizedBrand, _selectedBrand)) return false;
       }
       return true;
     }).toList();

@@ -413,8 +413,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   items: _brands.map((brand) {
-                    return DropdownMenuItem(
-                      value: brand['brandId'],
+                    return DropdownMenuItem<int>(
+                      value: brand['brandId'] as int?,
                       child: Text(brand['name'] ?? 'Unknown'),
                     );
                   }).toList(),
