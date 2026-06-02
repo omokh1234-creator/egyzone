@@ -117,7 +117,6 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
           final price = product['price']?.toString() ?? '0.00';
           final imageUrl = product['imageUrl'];
           final imageUrls = product['imageUrls'] as List<dynamic>?;
-          final seller = product['seller']?['storeName'] ?? product['seller']?['user']?['fullName'] ?? 'Unknown Seller';
           final category = product['categoryName'] ?? product['category']?['name'] ?? 'Unknown';
           final subCategory = product['subCategoryName'] ?? product['subCategory']?['name'] ?? 'Unknown';
           final brand = product['brand']?['name'] ?? product['brandName'] ?? 'Unknown';
@@ -126,8 +125,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
               ? imageUrl 
               : (imageUrls != null && imageUrls.isNotEmpty ? imageUrls[0] : null);
 
-          debugPrint('Product seller data: ${product['seller']}');
-          debugPrint('Product full data: $product');
+          final seller = product['sellerName'] ?? product['seller']?['storeName'] ?? product['seller']?['user']?['fullName'] ?? 'Unknown Seller';
 
           return Card(
             margin: EdgeInsets.only(bottom: 1.5.h),

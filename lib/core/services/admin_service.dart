@@ -68,12 +68,8 @@ class AdminService {
       Uri.parse('$_base/products/pending'),
       headers: await AuthService.authHeaders,
     );
-    debugPrint('AdminService getPendingProducts: ${response.statusCode}');
-    debugPrint('AdminService getPendingProducts body: ${response.body}');
     if (response.statusCode == 200) {
-      final data = AuthService.parseResponseList(response.body);
-      debugPrint('AdminService getPendingProducts parsed data: $data');
-      return data;
+      return AuthService.parseResponseList(response.body);
     }
     return [];
   }
