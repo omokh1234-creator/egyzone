@@ -174,12 +174,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
     setState(() => _isSubmitting = true);
 
     int? finalBrandId = _selectedBrandId;
+    print('Edit product - Initial selectedBrandId: $_selectedBrandId');
+    print('Edit product - Use new brand: $_useNewBrand');
     if (_useNewBrand) {
       final newBrand = await BrandService.createBrand(_newBrandController.text.trim());
+      print('Edit product - Created brand response: $newBrand');
       if (newBrand != null) {
         finalBrandId = newBrand['brandId'];
+        print('Edit product - Final brandId from new brand: $finalBrandId');
       }
     }
+    print('Edit product - Final brandId to send: $finalBrandId');
+    print('Edit product - Selected categoryId: $_selectedCategoryId, subCategoryId: $_selectedSubCategoryId');
 
     try {
       final imagePaths = [
@@ -201,6 +207,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           'imageFiles': imagePaths,
         },
       );
+      print('Edit product - Update success: $success');
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
