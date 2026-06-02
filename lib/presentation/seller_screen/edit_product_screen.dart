@@ -27,7 +27,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   
   final _newCategoryController = TextEditingController();
   final _newSubCategoryController = TextEditingController();
-  final _brandNameController = TextEditingController();
+  late final TextEditingController _brandNameController;
   bool _useNewCategory = false;
   bool _useNewSubCategory = false;
 

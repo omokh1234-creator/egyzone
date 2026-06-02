@@ -17,6 +17,7 @@ class SellerService {
     String? categoryName,
     String? subCategoryName,
     int? brandId,
+    String? brandName,
     List<String> specifications = const [],
   }) async {
     final url = Uri.parse('${AuthService.baseUrl}/api/Products');
@@ -35,10 +36,10 @@ class SellerService {
       ..fields['IsApproved'] = 'false';
 
     if (brandId != null) request.fields['BrandId'] = brandId.toString();
+    if (brandName != null) request.fields['BrandName'] = brandName;
 
     if (categoryName != null) request.fields['CategoryName'] = categoryName;
     if (subCategoryName != null) request.fields['SubCategoryName'] = subCategoryName;
-    // BrandName not sent - no brands API endpoint available
 
     // Add specifications as individual fields if the API expects them that way,
     // or as a list if supported. Swagger says "items: { type: string }".
