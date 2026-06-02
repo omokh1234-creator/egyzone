@@ -52,13 +52,39 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _descriptionController = TextEditingController(text: widget.productData['description'] ?? '');
     _selectedBrandId = widget.productData['brandId'];
     
+    // Try to get category/subcategory IDs from product data
     _selectedCategoryId = widget.productData['categoryId'];
     _selectedSubCategoryId = widget.productData['subCategoryId'];
     
     // Fetch categories and brands when the screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CategoryProvider>().fetchCategories();
+      final categoryProvider = context.read<CategoryProvider>();
+      categoryProvider.fetchCategories();
       _fetchBrands();
+      
+      // Find category/subcategory IDs by name if IDs are null
+      if (_selectedCategoryId == null && widget.productData['categoryName'] != null) {
+        final category = categoryProvider.categories.firstWhere(
+          (c) => c.name == widget.productData['categoryName'],
+          orElse: () => categoryProvider.categories.first,
+        );
+        _selectedCategoryId = category.id;
+      }
+      
+      if (_selectedSubCategoryId == null && widget.productData['subCategoryName'] != null) {
+        final categoryName = widget.productData['categoryName'];
+        final category = categoryProvider.categories.firstWhere(
+          (c) => c.name == categoryName,
+          orElse: () => categoryProvider.categories.first,
+        );
+        final subCategory = category.subCategories.firstWhere(
+          (s) => s.name == widget.productData['subCategoryName'],
+          orElse: () => category.subCategories.first,
+        );
+        _selectedSubCategoryId = subCategory.id;
+      }
+      
+      setState(() {});
     });
   }
 
