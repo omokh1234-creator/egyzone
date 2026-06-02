@@ -53,6 +53,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isLoadingBrands = true);
     try {
       final brands = await BrandService.getBrands();
+      print('Fetched brands: $brands');
       if (mounted) {
         setState(() {
           _brands = brands;
@@ -60,6 +61,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         });
       }
     } catch (e) {
+      print('Error fetching brands: $e');
       if (mounted) {
         setState(() => _isLoadingBrands = false);
       }
@@ -386,12 +388,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     labelText: 'Select Brand',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  items: _brands.map((brand) {
-                    return DropdownMenuItem<int>(
-                      value: brand['brandId'] as int?,
-                      child: Text(brand['name'] ?? 'Unknown'),
-                    );
-                  }).toList(),
+                  items: _brands.isEmpty
+                      ? [
+                          DropdownMenuItem<int>(
+                            value: null,
+                            child: Text('No brands available - create new'),
+                          ),
+                        ]
+                      : _brands.map((brand) {
+                          return DropdownMenuItem<int>(
+                            value: brand['brandId'] as int?,
+                            child: Text(brand['name'] ?? 'Unknown'),
+                          );
+                        }).toList(),
                   onChanged: (val) {
                     setState(() => _selectedBrandId = val);
                   },
