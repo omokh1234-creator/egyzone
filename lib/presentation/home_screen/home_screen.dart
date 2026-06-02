@@ -104,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final products = await ProductService.fetchProducts(
         isApproved: true,
         brandId: brandId,
+        pageSize: 100, // Increased to fetch more products
       );
       print('Fetched ${products.length} approved products');
       print('Product IDs: ${products.map((p) => p.productId).toList()}');
