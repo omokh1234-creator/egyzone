@@ -113,56 +113,86 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
           final product = _products[index];
           final id = product['productId'] ?? product['id'] ?? 0;
           final name = product['name'] ?? 'Unknown Product';
-          final description = product['description'] ?? 'No description';
           final price = product['price']?.toString() ?? '0.00';
           final imageUrl = product['imageUrl'];
-          final seller = product['seller']?['storeName'] ?? 'Unknown Seller';
+          final imageUrls = product['imageUrls'] as List<dynamic>?;
+          final seller = product['seller']?['storeName'] ?? product['seller']?['user']?['fullName'] ?? 'Unknown Seller';
+          final category = product['categoryName'] ?? product['category']?['name'] ?? 'Unknown';
+          final subCategory = product['subCategoryName'] ?? product['subCategory']?['name'] ?? 'Unknown';
+          final brand = product['brand']?['name'] ?? product['brandName'] ?? 'Unknown';
+
+          final displayImageUrl = (imageUrl != null && imageUrl.isNotEmpty) 
+              ? imageUrl 
+              : (imageUrls != null && imageUrls.isNotEmpty ? imageUrls[0] : null);
 
           return Card(
             margin: EdgeInsets.only(bottom: 2.h),
             clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (imageUrl != null && imageUrl.isNotEmpty)
+                if (displayImageUrl != null && displayImageUrl.isNotEmpty)
                   Image.network(
-                    imageUrl,
-                    height: 20.h,
+                    displayImageUrl,
+                    height: 15.h,
                     width: double.infinity,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      height: 20.h,
+                      height: 15.h,
                       color: theme.colorScheme.surfaceContainerHighest,
-                      child: const Center(child: Icon(Icons.broken_image, size: 48)),
+                      child: const Center(child: Icon(Icons.broken_image, size: 32)),
                     ),
                   )
                 else
                   Container(
-                    height: 20.h,
+                    height: 15.h,
                     color: theme.colorScheme.surfaceContainerHighest,
                     child: Center(
-                      child: Icon(Icons.image_not_supported, size: 48, color: theme.colorScheme.onSurfaceVariant),
+                      child: Icon(Icons.image_not_supported, size: 32, color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ),
                 Padding(
-                  padding: EdgeInsets.all(4.w),
+                  padding: EdgeInsets.all(3.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        name,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 0.5.h),
+                      Text(
+                        'Seller: $seller',
+                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 0.5.h),
+                      Row(
+                        children: [
+                          Text(
+                            'Category: $category',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            'Sub: $subCategory',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 0.5.h),
+                      Text(
+                        'Brand: $brand',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      SizedBox(height: 1.h),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
                           Text(
-                            '\$$price',
+                            '$price ج.م',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: theme.colorScheme.primary,
@@ -170,29 +200,18 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 1.h),
-                      Text(
-                        'Store: $seller',
-                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 1.h),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 2.h),
+                      SizedBox(height: 1.5.h),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: () => _rejectProduct(id),
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(Icons.close, size: 18),
                               label: const Text('Reject'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: theme.colorScheme.error,
                                 side: BorderSide(color: theme.colorScheme.error),
+                                padding: EdgeInsets.symmetric(vertical: 1.h),
                               ),
                             ),
                           ),
@@ -200,11 +219,12 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () => _approveProduct(id),
-                              icon: const Icon(Icons.check),
+                              icon: const Icon(Icons.check, size: 18),
                               label: const Text('Approve'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 1.h),
                               ),
                             ),
                           ),
