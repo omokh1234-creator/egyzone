@@ -8,6 +8,7 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/providers/category_provider.dart';
 import '../../core/providers/notification_provider.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/brand_service.dart';
 import '../../core/services/product_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_bar.dart';
@@ -38,26 +39,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isLoadingProducts = false;
 
-  /// Brand data fetched from the detail endpoint (list API omits brand).
-  /// Maps productId → brandName.
-  final Map<int, String> _brandCache = {};
+  /// Brands fetched from the API
+  List<Map<String, dynamic>> _brands = [];
+  bool _isLoadingBrands = false;
 
   /// Unique, sorted brand names relevant to the current category+subcategory
-  /// selection. Derived from [_brandCache] so it updates as brands load.
+  /// selection. Derived from API brands.
   List<String> get _availableBrands {
-    final ids = _allProducts.where((p) {
-      if (_selectedCategory.isNotEmpty) {
-        if (!_namesMatch(p.normalizedCategory, _selectedCategory)) return false;
-      }
-      if (_selectedSubcategory.isNotEmpty) {
-        if (!_namesMatch(p.normalizedSubCategory, _selectedSubcategory)) return false;
-      }
-      return true;
-    }).map((p) => p.productId).toSet();
-
-    return _brandCache.entries
-        .where((e) => ids.contains(e.key) && e.value.isNotEmpty)
-        .map((e) => e.value)
+    return _brands
+        .map((b) => b['name'] as String? ?? '')
+        .where((name) => name.isNotEmpty)
         .toSet()
         .toList()
       ..sort();
@@ -74,8 +65,26 @@ class _HomeScreenState extends State<HomeScreen> {
       await Future.wait([
         context.read<CategoryProvider>().fetchCategories(),
         _fetchAllProducts(),
+        _fetchBrands(),
       ]);
     });
+  }
+
+  Future<void> _fetchBrands() async {
+    setState(() => _isLoadingBrands = true);
+    try {
+      final brands = await BrandService.getBrands();
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+          _isLoadingBrands = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingBrands = false);
+      }
+    }
   }
 
   @override
@@ -88,11 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── API fetch ──────────────────────────────────────────────────────────────
 
-  Future<void> _fetchAllProducts() async {
+  Future<void> _fetchAllProducts({int? brandId}) async {
     if (!mounted) return;
     setState(() => _isLoadingProducts = true);
     try {
-      final products = await ProductService.fetchProducts(isApproved: true);
+      final products = await ProductService.fetchProducts(
+        isApproved: true,
+        brandId: brandId,
+      );
       if (mounted) {
         // Sort by productId descending so latest products are at the top
         _allProducts = products..sort((a, b) => b.productId.compareTo(a.productId));
@@ -101,8 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
         context.read<CategoryProvider>().updateFromProducts(products);
         
         _applyFilter();
-        // Kick off background brand enrichment from detail endpoints
-        _enrichBrandsFromDetails();
       }
     } catch (e) {
       if (mounted) {
@@ -116,36 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshProducts() => _fetchAllProducts();
-
-  /// Fetches brand data from the detail endpoint for every product.
-  /// Runs entirely in the background; rebuilds the brand filter as it fills.
-  Future<void> _enrichBrandsFromDetails() async {
-    if (!mounted || _allProducts.isEmpty) return;
-
-    // Fetch all detail endpoints in parallel (batch of up to 10 at a time
-    // to avoid overwhelming the server).
-    const batchSize = 10;
-    final ids = _allProducts.map((p) => p.productId).toList();
-
-    for (var i = 0; i < ids.length; i += batchSize) {
-      if (!mounted) return;
-      final batch = ids.skip(i).take(batchSize).toList();
-      final results = await Future.wait(
-        batch.map((id) => ProductService.fetchProductDetail(id)),
-      );
-      if (!mounted) return;
-      bool changed = false;
-      for (final detail in results) {
-        if (detail != null &&
-            detail.brandName != null &&
-            detail.brandName!.isNotEmpty) {
-          _brandCache[detail.productId] = detail.brandName!;
-          changed = true;
-        }
-      }
-      if (changed) setState(() {}); // refresh brand chips progressively
-    }
-  }
 
   // ── Filter ─────────────────────────────────────────────────────────────────
 
@@ -232,8 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onBrandSelected(String brand) {
+    final selectedBrand = _brands.firstWhere(
+      (b) => b['name'] == brand,
+      orElse: () => <String, dynamic>{},
+    );
+    final brandId = selectedBrand['brandId'] as int?;
     setState(() => _selectedBrand = brand); // '' when deselected
-    _applyFilter();
+    _fetchAllProducts(brandId: brandId); // Refresh from API with brand filter
   }
 
   void _onAddToCart(Product product) {

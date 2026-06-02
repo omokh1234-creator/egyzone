@@ -29,30 +29,30 @@ class _SellerInventoryScreenState extends State<SellerInventoryScreen> {
 
   Future<void> _fetchProducts() async {
     setState(() => _isLoading = true);
-    final products = await ProductService.fetchSellerProducts();
-    
-    // Fetch full product details for each product to get images
-    List<Product> productsWithDetails = [];
-    for (var product in products) {
-      final detail = await ProductService.fetchProductDetail(product.productId);
-      if (detail != null) {
-        productsWithDetails.add(detail);
-      } else {
-        productsWithDetails.add(product);
-      }
-    }
-    
-    if (mounted) {
-      setState(() {
-        _products = productsWithDetails;
-        _isLoading = false;
+    try {
+      final products = await ProductService.fetchSellerProducts();
+      
+      // Fetch full product details in parallel for images
+      final futures = products.map((product) async {
+        final detail = await ProductService.fetchProductDetail(product.productId);
+        return detail ?? product;
       });
-    }
-    // Debug: log product data
-    for (var product in productsWithDetails) {
-      debugPrint('Product: ${product.name}');
-      debugPrint('Image URLs: ${product.imageUrls}');
-      debugPrint('Image URL: ${product.imageUrl}');
+      
+      final productsWithDetails = await Future.wait(futures);
+      
+      if (mounted) {
+        setState(() {
+          _products = productsWithDetails;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading products: $e')),
+        );
+      }
     }
   }
 

@@ -47,7 +47,7 @@ class ChatService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['response'] as String? ?? data['message'] as String? ?? 'No response';
+      return data['reply'] as String? ?? data['response'] as String? ?? data['message'] as String? ?? 'No response';
     } else {
       throw Exception('Failed to send message: ${response.statusCode} - ${response.body}');
     }

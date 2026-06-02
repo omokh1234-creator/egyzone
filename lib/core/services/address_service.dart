@@ -53,4 +53,20 @@ class AddressService {
           'Failed to delete address: ${response.statusCode}');
     }
   }
+
+  /// Update an existing address
+  static Future<void> updateAddress(int addressId, Address address) async {
+    final headers = await AuthService.authHeaders;
+    final response = await http.put(
+      Uri.parse('${AuthService.baseUrl}/api/Addresses/$addressId'),
+      headers: headers,
+      body: jsonEncode(address.toJson()),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      final data = jsonDecode(response.body);
+      throw Exception(
+          data['message'] ?? 'Failed to update address: ${response.statusCode}');
+    }
+  }
 }

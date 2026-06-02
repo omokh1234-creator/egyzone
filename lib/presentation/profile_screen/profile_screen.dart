@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_export.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/order_service.dart';
+import '../../core/services/user_profile_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_bar.dart';
 import './widgets/order_list_card.dart';
@@ -62,16 +63,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(
-        Uri.parse('${AuthService.baseUrl}/api/UserProfile/profile'),
-        headers: await AuthService.authHeaders,
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() => _userProfile = data);
+      final profile = await UserProfileService.getProfile();
+      if (profile != null) {
+        setState(() => _userProfile = profile);
       }
     } catch (e) {
-      // Silently fail     UI shows default guest values
+      // Silently fail - UI shows default guest values
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

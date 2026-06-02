@@ -26,6 +26,12 @@ enum CustomBottomBarItem {
     activeIcon: Icons.inventory_2,
     label: 'Inventory',
   ),
+  dashboard(
+    route: '/seller/dashboard',
+    icon: Icons.dashboard_outlined,
+    activeIcon: Icons.dashboard,
+    label: 'Dashboard',
+  ),
   moderation(
     route: '/admin/moderation',
     icon: Icons.gavel_outlined,
@@ -71,6 +77,7 @@ class CustomBottomBar extends StatelessWidget {
     switch (normalizedRole) {
       case 'seller':
         return [
+          CustomBottomBarItem.dashboard,
           CustomBottomBarItem.inventory,
           CustomBottomBarItem.profile,
         ];
@@ -137,7 +144,7 @@ class CustomBottomBar extends StatelessWidget {
                     if (onTap != null) {
                       onTap!(item.route);
                     } else {
-                      if (item.route == '/home-screen') {
+                      if (item.route == '/home-screen' || item.route == '/seller/dashboard' || item.route == '/admin/moderation') {
                         Navigator.pushNamedAndRemoveUntil(
                           context,
                           item.route,

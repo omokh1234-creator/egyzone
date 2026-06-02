@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../core/providers/cart_provider.dart';
+import '../../core/services/address_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/order_service.dart';
 import '../../widgets/custom_app_bar.dart';
@@ -41,21 +42,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _fetchAddresses() async {
     setState(() => _isLoadingAddresses = true);
     try {
-      final response = await http.get(
-        Uri.parse('${AuthService.baseUrl}/api/Addresses'),
-        headers: await AuthService.authHeaders,
-      );
-      if (response.statusCode == 200) {
-        final list = AuthService.parseResponseList(response.body)
-            .whereType<Map<String, dynamic>>()
-            .toList();
-        setState(() {
-          _addresses = list;
-          if (_addresses.isNotEmpty) {
-            _selectedAddress = _addresses.first;
-          }
-        });
-      }
+      final addresses = await AddressService.getAddresses();
+      setState(() {
+        _addresses = addresses.map((a) => a.toJson()).toList();
+        if (_addresses.isNotEmpty) {
+          _selectedAddress = _addresses.first;
+        }
+      });
     } catch (_) {
     } finally {
       if (mounted) setState(() => _isLoadingAddresses = false);

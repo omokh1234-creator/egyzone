@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'auth_service.dart';
 import '../models/category_model.dart';
@@ -93,6 +94,7 @@ class ProductService {
     double? minPrice,
     double? maxPrice,
     bool? isApproved,
+    int? brandId,
     int page = 1,
     int pageSize = 50,
   }) async {
@@ -114,6 +116,9 @@ class ProductService {
     }
     if (isApproved != null) {
       queryParams['isApproved'] = isApproved.toString();
+    }
+    if (brandId != null) {
+      queryParams['brandId'] = brandId.toString();
     }
 
     final uri = Uri.parse('${AuthService.baseUrl}/api/Products')
@@ -216,5 +221,38 @@ class ProductService {
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (_) {}
     return false;
+  }
+
+  /// Upload a product image
+  ///
+  /// API: POST /api/Products/upload-image
+  /// Body: multipart/form-data with image file
+  static Future<String?> uploadProductImage(String imagePath) async {
+    try {
+      final headers = await AuthService.authHeaders;
+      headers.remove('Content-Type');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${AuthService.baseUrl}/api/Products/upload-image'),
+      )
+        ..headers.addAll(headers);
+
+      final file = await http.MultipartFile.fromPath(
+        'image',
+        imagePath,
+        contentType: MediaType('image', 'jpeg'),
+      );
+      request.files.add(file);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = AuthService.parseResponseMap(response.body);
+        return data?['imageUrl'] as String?;
+      }
+    } catch (_) {}
+    return null;
   }
 }

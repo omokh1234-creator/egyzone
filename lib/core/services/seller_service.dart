@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'auth_service.dart';
@@ -15,7 +16,7 @@ class SellerService {
     required List<String> imagePaths,
     String? categoryName,
     String? subCategoryName,
-    String? brandName,
+    int? brandId,
     List<String> specifications = const [],
   }) async {
     final url = Uri.parse('${AuthService.baseUrl}/api/Products');
@@ -30,11 +31,14 @@ class SellerService {
       ..fields['Price'] = price.toString()
       ..fields['Description'] = description
       ..fields['CategoryId'] = categoryId.toString()
-      ..fields['SubCategoryId'] = subCategoryId.toString();
+      ..fields['SubCategoryId'] = subCategoryId.toString()
+      ..fields['IsApproved'] = 'false';
+
+    if (brandId != null) request.fields['BrandId'] = brandId.toString();
 
     if (categoryName != null) request.fields['CategoryName'] = categoryName;
     if (subCategoryName != null) request.fields['SubCategoryName'] = subCategoryName;
-    if (brandName != null) request.fields['BrandName'] = brandName;
+    // BrandName not sent - no brands API endpoint available
 
     // Add specifications as individual fields if the API expects them that way,
     // or as a list if supported. Swagger says "items: { type: string }".
@@ -59,23 +63,72 @@ class SellerService {
       return true;
     } else {
       final data = jsonDecode(response.body);
-      throw Exception(data['message'] ?? 'Failed to create product: ${response.statusCode}');
+      debugPrint('Product creation error: ${response.statusCode} - ${response.body}');
+      throw Exception(data['message'] ?? data['error'] ?? 'Failed to create product: ${response.statusCode}');
     }
   }
 
   /// Update an existing product
   /// Sets isApproved to false so admin must verify before publishing
+  /// Supports image uploads via multipart form data
   static Future<bool> updateProduct(int productId, Map<String, dynamic> data) async {
-    // Set isApproved to false to require admin verification
-    data['IsApproved'] = false;
+    final url = Uri.parse('${AuthService.baseUrl}/api/Products/$productId');
+    final headers = await AuthService.authHeaders;
     
-    final response = await http.put(
-      Uri.parse('${AuthService.baseUrl}/api/Products/$productId'),
-      headers: await AuthService.authHeaders,
-      body: jsonEncode(data),
-    );
+    // Remove Content-Type to let MultipartRequest set it with boundary
+    headers.remove('Content-Type');
 
-    return response.statusCode == 200 || response.statusCode == 204;
+    // Check if there are image files to upload
+    final List<String> imagePaths = data['imageFiles'] as List<String>? ?? [];
+    final bool hasImages = imagePaths.isNotEmpty;
+
+    if (hasImages) {
+      // Use multipart form data for image uploads
+      final request = http.MultipartRequest('PUT', url)
+        ..headers.addAll(headers);
+
+      // Add all data fields
+      data.forEach((key, value) {
+        if (key != 'imageFiles' && value != null) {
+          request.fields[key] = value.toString();
+        }
+      });
+
+      // Set isApproved to false to require admin verification
+      request.fields['IsApproved'] = 'false';
+      
+      // Handle brandId separately to ensure it's sent
+      if (data['brandId'] != null) {
+        request.fields['BrandId'] = data['brandId'].toString();
+      }
+
+      // Add image files
+      for (final path in imagePaths) {
+        final file = await http.MultipartFile.fromPath(
+          'ImageFiles',
+          path,
+          contentType: MediaType('image', 'jpeg'),
+        );
+        request.files.add(file);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } else {
+      // Use simple JSON PUT if no images
+      // Set isApproved to false to require admin verification
+      data['IsApproved'] = false;
+      
+      final response = await http.put(
+        Uri.parse('${AuthService.baseUrl}/api/Products/$productId'),
+        headers: headers,
+        body: jsonEncode(data),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    }
   }
 
   /// Delete a product
@@ -86,5 +139,62 @@ class SellerService {
     );
 
     return response.statusCode == 200 || response.statusCode == 204;
+  }
+
+  /// Get seller profile
+  static Future<Map<String, dynamic>?> getSellerProfile() async {
+    try {
+      final headers = await AuthService.authHeaders;
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/api/Sellers/my-profile'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = AuthService.parseResponseMap(response.body);
+        return data;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Register as seller
+  static Future<bool> registerAsSeller({
+    required String storeName,
+    String? description,
+    String? contactNumber,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders;
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/api/Sellers/register-as-seller'),
+        headers: headers,
+        body: jsonEncode({
+          'storeName': storeName,
+          if (description != null) 'description': description,
+          if (contactNumber != null) 'contactNumber': contactNumber,
+        }),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {}
+    return false;
+  }
+
+  /// Get seller dashboard statistics
+  static Future<Map<String, dynamic>?> getSellerDashboard() async {
+    try {
+      final headers = await AuthService.authHeaders;
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/api/Sellers/dashboard'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = AuthService.parseResponseMap(response.body);
+        return data;
+      }
+    } catch (_) {}
+    return null;
   }
 }

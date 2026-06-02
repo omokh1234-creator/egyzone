@@ -188,4 +188,28 @@ class AdminService {
     );
     return response.statusCode == 200 || response.statusCode == 204;
   }
+
+  /// PUT /api/Coupons/{id}
+  static Future<bool> updateCoupon(int couponId, {
+    String? code,
+    int? discountPercent,
+    DateTime? expiryDate,
+    int? maxUsage,
+    bool? isPercentage,
+  }) async {
+    final body = jsonEncode({
+      if (code != null) 'code': code,
+      if (discountPercent != null) 'discountPercent': discountPercent,
+      if (expiryDate != null) 'expiryDate': expiryDate.toIso8601String(),
+      if (maxUsage != null) 'maxUsage': maxUsage,
+      if (isPercentage != null) 'isPercentage': isPercentage,
+    });
+
+    final response = await http.put(
+      Uri.parse('${AuthService.baseUrl}/api/Coupons/$couponId'),
+      headers: await AuthService.authHeaders,
+      body: body,
+    );
+    return response.statusCode == 200 || response.statusCode == 204;
+  }
 }

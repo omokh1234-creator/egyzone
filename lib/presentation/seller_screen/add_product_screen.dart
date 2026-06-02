@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
 import '../../core/providers/category_provider.dart';
+import '../../core/services/brand_service.dart';
 import '../../core/services/seller_service.dart';
 import '../../widgets/custom_app_bar.dart';
 
@@ -19,18 +20,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _brandController = TextEditingController();
   
   int? _selectedCategoryId;
   int? _selectedSubCategoryId;
+  int? _selectedBrandId;
   
   final _newCategoryController = TextEditingController();
   final _newSubCategoryController = TextEditingController();
+  final _newBrandController = TextEditingController();
   bool _useNewCategory = false;
   bool _useNewSubCategory = false;
+  bool _useNewBrand = false;
 
   final List<XFile> _selectedImages = [];
   bool _isSubmitting = false;
+  List<Map<String, dynamic>> _brands = [];
+  bool _isLoadingBrands = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -40,7 +45,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
     // Fetch categories when the screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CategoryProvider>().fetchCategories();
+      _fetchBrands();
     });
+  }
+
+  Future<void> _fetchBrands() async {
+    setState(() => _isLoadingBrands = true);
+    try {
+      final brands = await BrandService.getBrands();
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+          _isLoadingBrands = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingBrands = false);
+      }
+    }
   }
 
   Future<void> _pickImages() async {
@@ -91,6 +114,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       return;
     }
+    if (_useNewBrand && _newBrandController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a new brand name')),
+      );
+      return;
+    }
     if (_selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add at least one image')),
@@ -99,6 +128,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     setState(() => _isSubmitting = true);
+
+    int? finalBrandId = _selectedBrandId;
+    if (_useNewBrand) {
+      final newBrand = await BrandService.createBrand(_newBrandController.text.trim());
+      if (newBrand != null) {
+        finalBrandId = newBrand['brandId'];
+      }
+    }
 
     try {
       final success = await SellerService.createProduct(
@@ -109,7 +146,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         subCategoryId: _useNewSubCategory ? 0 : _selectedSubCategoryId!,
         categoryName: _useNewCategory ? _newCategoryController.text.trim() : null,
         subCategoryName: _useNewSubCategory ? _newSubCategoryController.text.trim() : null,
-        brandName: _brandController.text.trim().isNotEmpty ? _brandController.text.trim() : null,
+        brandId: finalBrandId,
         imagePaths: _selectedImages.map((e) => e.path).toList(),
       );
 
@@ -186,12 +223,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 validator: (v) => v!.isEmpty ? 'Price is required' : null,
               ),
               SizedBox(height: 2.h),
-              _buildTextField(
-                controller: _brandController,
-                label: 'Brand Name',
-                hint: 'e.g. Nike, Apple, Samsung',
-                validator: (v) => v!.isEmpty ? 'Brand is required' : null,
+              
+              Text(
+                'Brand',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
+              SizedBox(height: 2.h),
+              _buildBrandDropdown(),
               SizedBox(height: 2.h),
               
               Text(
@@ -332,6 +370,49 @@ class _AddProductScreenState extends State<AddProductScreen> {
         alignLabelWithHint: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    );
+  }
+
+  Widget _buildBrandDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!_useNewBrand)
+          _isLoadingBrands
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownButtonFormField<int>(
+                  value: _selectedBrandId,
+                  decoration: InputDecoration(
+                    labelText: 'Select Brand',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: _brands.map((brand) {
+                    return DropdownMenuItem(
+                      value: brand['brandId'],
+                      child: Text(brand['name'] ?? 'Unknown'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() => _selectedBrandId = val);
+                  },
+                )
+        else
+          _buildTextField(
+            controller: _newBrandController,
+            label: 'New Brand Name',
+            hint: 'e.g. Nike, Apple, Samsung',
+          ),
+        TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _useNewBrand = !_useNewBrand;
+              if (!_useNewBrand) _newBrandController.clear();
+            });
+          },
+          icon: Icon(_useNewBrand ? Icons.list : Icons.add_circle_outline, size: 18),
+          label: Text(_useNewBrand ? 'Select from list' : 'Create new brand'),
+        ),
+      ],
     );
   }
 

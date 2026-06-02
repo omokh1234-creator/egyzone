@@ -11,6 +11,7 @@ import 'package:egyzone/presentation/checkout_screen/checkout_screen.dart';
 import 'package:egyzone/presentation/chat_bot_screen/chat_bot_screen.dart';
 import 'package:egyzone/presentation/notifications_screen/notifications_screen.dart';
 import 'package:egyzone/presentation/seller_screen/seller_inventory_screen.dart';
+import 'package:egyzone/presentation/seller_screen/seller_dashboard_screen.dart';
 import 'package:egyzone/presentation/admin_screen/admin_moderation_screen.dart';
 import 'package:egyzone/presentation/seller_screen/add_product_screen.dart';
 import 'package:egyzone/presentation/seller_screen/edit_product_screen.dart';
@@ -35,6 +36,7 @@ class AppRoutes {
   static const String checkout = '/checkout-screen';
   static const String chatBot = '/chat-bot-screen';
   static const String notifications = '/notifications-screen';
+  static const String sellerDashboard = '/seller/dashboard';
   static const String sellerInventory = '/seller/inventory';
   static const String adminModeration = '/admin/moderation';
   static const String addProduct = '/seller/add-product';
@@ -75,6 +77,7 @@ class AppRoutes {
       return ProductDetailScreen(productData: productData);
     },
     notifications: (context) => const NotificationsScreen(),
+    sellerDashboard: (context) => const SellerDashboardScreen(),
     sellerInventory: (context) => const SellerInventoryScreen(),
     adminModeration: (context) => const AdminModerationScreen(),
     addProduct: (context) => const AddProductScreen(),
@@ -93,7 +96,7 @@ class AppRoutes {
     if (role == 'admin') {
       rootRoute = adminModeration;
     } else if (role == 'seller') {
-      rootRoute = sellerInventory;
+      rootRoute = sellerDashboard;
     }
 
     Navigator.pushNamedAndRemoveUntil(
@@ -113,7 +116,7 @@ class AppRoutes {
       ),
     ).then((_) {
       if (!context.mounted) return;
-      if (routeName != home && routeName != adminModeration && routeName != sellerInventory) {
+      if (routeName != home && routeName != adminModeration && routeName != sellerDashboard && routeName != sellerInventory) {
         navigateToRoot(context);
       }
     });
