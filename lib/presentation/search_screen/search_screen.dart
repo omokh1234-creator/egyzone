@@ -29,7 +29,7 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounceTimer;
@@ -51,6 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.initialSortBy != null) {
       _sortBy = widget.initialSortBy!;
     }
@@ -67,20 +68,32 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh products when app is resumed
+      _fetchProducts();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _debounceTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _fetchProducts() async {
+  Future<void> _fetchProducts({String? searchQuery}) async {
     setState(() => _isLoadingProducts = true);
     try {
       final products = await ProductService.fetchProducts(
+        search: searchQuery,
         isApproved: null, // Include both approved and unapproved products
-        pageSize: 200, // Fetch more products for search
+        pageSize: 500, // Fetch even more products for search
       );
+      debugPrint('Search screen fetched ${products.length} products for query: $searchQuery');
       setState(() {
         _allProducts = products;
       });
@@ -216,60 +229,38 @@ class _SearchScreenState extends State<SearchScreen> {
       _searchController.text = query;
     });
 
-    var results = _allProducts.where((product) {
-      final String name = product.normalizedName;
-      final String productCategory = product.normalizedCategory;
-      final String productSubCategory = product.normalizedSubCategory;
+    // Use API search instead of client-side filtering
+    _fetchProducts(searchQuery: query.trim().isEmpty ? null : query).then((_) {
+      // Apply additional filters (category, price, rating) on the API results
+      var results = _allProducts.where((product) {
+        final String productCategory = product.normalizedCategory;
 
-      final normalizedQuery = Product.normalize(query);
-      // Matches if name contains query OR category matches query OR subcategory matches query
-      final matchesQuery = name.contains(normalizedQuery) ||
-          _namesMatch(productCategory, query) ||
-          _namesMatch(productSubCategory, query);
+        final matchesCategory = _selectedCategories.isEmpty ||
+            _selectedCategories.any((sel) => _namesMatch(productCategory, sel));
 
-      final matchesCategory = _selectedCategories.isEmpty ||
-          _selectedCategories.any((sel) => _namesMatch(productCategory, sel));
+        final double price = product.price;
+        final matchesPrice =
+            price >= _priceRange.start && price <= _priceRange.end;
 
-      final double price = product.price;
-      final matchesPrice =
-          price >= _priceRange.start && price <= _priceRange.end;
+        final matchesRating = product.rating >= _minRating;
 
-      final matchesRating = product.rating >= _minRating;
+        return matchesCategory && matchesPrice && matchesRating;
+      }).toList();
 
-      return matchesQuery && matchesCategory && matchesPrice && matchesRating;
-    }).toList();
+      if (_sortBy == 'Price Low-High') {
+        results.sort((a, b) => a.price.compareTo(b.price));
+      } else if (_sortBy == 'Price High-Low') {
+        results.sort((a, b) => b.price.compareTo(a.price));
+      } else if (_sortBy == 'Rating') {
+        results.sort((a, b) => b.rating.compareTo(a.rating));
+      } else if (_sortBy == 'Newest') {
+        results.sort((a, b) => b.productId.compareTo(a.productId));
+      }
 
-    if (_sortBy == 'Price Low-High') {
-      results.sort((a, b) => a.price.compareTo(b.price));
-    } else if (_sortBy == 'Price High-Low') {
-      results.sort((a, b) => b.price.compareTo(a.price));
-    } else if (_sortBy == 'Rating') {
-      results.sort((a, b) => b.rating.compareTo(a.rating));
-    } else if (_sortBy == 'Newest') {
-      results.sort((a, b) => b.productId.compareTo(a.productId));
-    } else if (_sortBy == 'Relevance' && query.trim().isNotEmpty) {
-      final lowerQuery = query.toLowerCase();
-      results.sort((a, b) {
-        final aName = a.normalizedName;
-        final bName = b.normalizedName;
-
-        int aIndex = aName.indexOf(lowerQuery);
-        int bIndex = bName.indexOf(lowerQuery);
-
-        // If matched by category instead of name, push to the end
-        if (aIndex == -1) aIndex = 9999;
-        if (bIndex == -1) bIndex = 9999;
-
-        if (aIndex != bIndex) {
-          return aIndex.compareTo(bIndex);
-        }
-        return aName.compareTo(bName); // Alphabetical fallback
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
       });
-    }
-
-    setState(() {
-      _searchResults = results;
-      _isSearching = false;
     });
   }
 
