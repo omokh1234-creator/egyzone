@@ -98,6 +98,11 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         _allProducts = products;
       });
 
+      // Sync the CategoryProvider with the actual products found in the list
+      if (mounted) {
+        context.read<CategoryProvider>().updateFromProducts(products);
+      }
+
       // If initialized with specific criteria, perform search automatically
       if (widget.initialQuery != null ||
           widget.initialCategory != null ||

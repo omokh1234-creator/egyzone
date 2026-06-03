@@ -31,14 +31,15 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedSubcategory = '';
   String _selectedBrand = '';
 
-  /// Selected category ID for API filtering
-  int? _selectedCategoryId;
   /// Selected subcategory ID for API filtering
   int? _selectedSubcategoryId;
   /// Selected brand ID for API filtering
   int? _selectedBrandId;
 
-  /// Products shown to the user (fetched from API with filters)
+  /// All products fetched from the API (unfiltered master list).
+  List<Product> _allProducts = [];
+
+  /// Products shown to the user after applying filters.
   List<Product> _displayedProducts = [];
 
   bool _isLoadingProducts = false;
@@ -107,16 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final products = await ProductService.fetchProducts(
         isApproved: true,
-        subCategoryId: _selectedSubcategoryId,
         brandId: _selectedBrandId,
         pageSize: 100,
       );
       if (mounted) {
         // Sort by productId descending so latest products are at the top
-        _displayedProducts = products..sort((a, b) => b.productId.compareTo(a.productId));
+        _allProducts = products..sort((a, b) => b.productId.compareTo(a.productId));
         
         // Sync the CategoryProvider with the actual products found in the list
         context.read<CategoryProvider>().updateFromProducts(products);
+        
+        _applyFilter();
       }
     } catch (e) {
       if (mounted) {
@@ -131,35 +133,68 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshProducts() => _fetchAllProducts();
 
+  // ── Filter ─────────────────────────────────────────────────────────────────
+
+  /// Filters [_allProducts] by selected category / subcategory / brand.
+  void _applyFilter() {
+    if (!mounted) return;
+
+    _displayedProducts = _allProducts.where((p) {
+      // 1. Category check (client-side since API doesn't support categoryId)
+      if (_selectedCategory.isNotEmpty) {
+        if (!_namesMatch(p.normalizedCategory, _selectedCategory)) return false;
+      }
+
+      // 2. Subcategory check (client-side for consistency)
+      if (_selectedSubcategory.isNotEmpty) {
+        if (!_namesMatch(p.normalizedSubCategory, _selectedSubcategory)) return false;
+      }
+
+      // 3. Brand check (client-side for consistency)
+      if (_selectedBrand.isNotEmpty) {
+        if (!_namesMatch(p.normalizedBrand, _selectedBrand)) return false;
+      }
+      return true;
+    }).toList();
+
+    setState(() {});
+  }
+
+  bool _namesMatch(String normalizedApiName, String uiName) {
+    final na = normalizedApiName;
+    final nb = Product.normalize(uiName);
+
+    if (na == nb) return true;
+    if (Product.compact(na) == Product.compact(nb)) return true;
+
+    final nbEscaped = RegExp.escape(nb);
+    final naEscaped = RegExp.escape(na);
+
+    final hasWordBInA = RegExp('\\b$nbEscaped\\b').hasMatch(na);
+    final hasWordAInB = RegExp('\\b$naEscaped\\b').hasMatch(nb);
+
+    if (hasWordBInA || hasWordAInB) return true;
+
+    if ((nb == 'men' && na.contains('women')) ||
+        (na == 'men' && nb.contains('women'))) {
+      return false;
+    }
+
+    return na.contains(nb) || nb.contains(na);
+  }
+
   // ── Event handlers ─────────────────────────────────────────────────────────
 
   /// '' = deselect (tap again to unselect).
   void _onCategorySelected(String category) {
-    final categoryProvider = context.read<CategoryProvider>();
-    final categoryObj = categoryProvider.findCategory(category);
-    
     setState(() {
       _selectedCategory = category;   // '' when deselected
-      _selectedCategoryId = categoryObj?.categoryId;
       _selectedSubcategory = '';      // reset downstream
       _selectedSubcategoryId = null;
       _selectedBrand = '';
       _selectedBrandId = null;
     });
-    
-    // When a category is selected, we need to fetch products for its subcategories
-    // since the API doesn't support filtering by categoryId directly
-    if (category.isEmpty) {
-      _fetchAllProducts(); // Fetch all products
-    } else if (categoryObj != null && categoryObj.subCategories.isNotEmpty) {
-      // Fetch products for the first subcategory (or could fetch for all)
-      // For simplicity, we'll fetch for the first subcategory
-      _selectedSubcategoryId = categoryObj.subCategories.first.subCategoryId;
-      _selectedSubcategory = categoryObj.subCategories.first.name;
-      _fetchAllProducts();
-    } else {
-      _fetchAllProducts(); // Fallback to all products
-    }
+    _applyFilter();
   }
 
   void _onSubcategorySelected(String sub) {
@@ -173,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedBrand = '';
       _selectedBrandId = null;
     });
-    _fetchAllProducts();
+    _applyFilter();
   }
 
   void _onBrandSelected(String brand) {
@@ -186,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedBrand = brand; // '' when deselected
       _selectedBrandId = brandId;
     });
-    _fetchAllProducts();
+    _applyFilter();
   }
 
   void _onAddToCart(Product product) {
