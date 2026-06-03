@@ -77,7 +77,10 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _fetchProducts() async {
     setState(() => _isLoadingProducts = true);
     try {
-      final products = await ProductService.fetchProducts();
+      final products = await ProductService.fetchProducts(
+        isApproved: null, // Include both approved and unapproved products
+        pageSize: 200, // Fetch more products for search
+      );
       setState(() {
         _allProducts = products;
       });
