@@ -18,6 +18,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _storeNameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _contactNumberController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
   String _selectedRole = 'Customer';
@@ -28,13 +31,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmController.text.trim();
     final phoneNumber = _phoneController.text.trim();
+    final storeName = _storeNameController.text.trim();
+    final description = _descriptionController.text.trim();
+    final contactNumber = _contactNumberController.text.trim();
 
     if (fullName.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
+        confirmPassword.isEmpty ||
         phoneNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (_selectedRole == 'Seller' && (storeName.isEmpty || contactNumber.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill store name and contact number for seller registration')),
       );
       return;
     }
@@ -70,6 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // First, register the user
       final response = await http.post(
         Uri.parse('${AuthService.baseUrl}/api/Auth/register'),
         headers: AuthService.publicHeaders,
@@ -78,24 +93,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'email': email,
           'password': password,
           'phoneNumber': phoneNumber,
-          'role': _selectedRole,
         }),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // If seller, call the seller registration endpoint
+        if (_selectedRole == 'Seller') {
+          final sellerResponse = await http.post(
+            Uri.parse('${AuthService.baseUrl}/api/Sellers/register-as-seller'),
+            headers: AuthService.publicHeaders,
+            body: jsonEncode({
+              'storeName': storeName,
+              'description': description,
+              'contactNumber': contactNumber,
+            }),
+          );
+
+          if (sellerResponse.statusCode != 200 && sellerResponse.statusCode != 201) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User registered but seller registration failed')),
+            );
+            return;
+          }
+        }
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Registration successful! Please login.')),
+          const SnackBar(content: Text('Registration successful! Please login.')),
         );
         
         final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
         final bool canGoBack = args?['canGoBack'] == true;
 
         if (canGoBack) {
-          // Go to login in canGoBack mode so the user can complete the flow
           Navigator.pushReplacementNamed(context, '/login-screen',
               arguments: {'canGoBack': true});
         } else {
@@ -209,6 +243,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  if (_selectedRole == 'Seller') ...[
+                    TextField(
+                      controller: _storeNameController,
+                      decoration: const InputDecoration(labelText: 'Store Name'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(labelText: 'Store Description'),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _contactNumberController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'Contact Number'),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Full Name'),
