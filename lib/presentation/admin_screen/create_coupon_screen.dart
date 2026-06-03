@@ -18,7 +18,6 @@ class _CreateCouponScreenState extends State<CreateCouponScreen> {
   final _maxUsageController = TextEditingController();
   
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 30));
-  bool _isPercentage = true;
   bool _isSubmitting = false;
 
   Future<void> _selectDate(BuildContext context) async {
@@ -41,14 +40,11 @@ class _CreateCouponScreenState extends State<CreateCouponScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final discountValue = double.parse(_discountController.text.trim());
       final success = await AdminService.createCoupon(
         code: _codeController.text.trim().toUpperCase(),
-        discountPercent: _isPercentage ? discountValue.toInt() : 0,
+        discountPercent: int.parse(_discountController.text.trim()),
         expiryDate: _selectedDate,
         maxUsage: int.parse(_maxUsageController.text.trim()),
-        isPercentage: _isPercentage,
-        discountAmount: _isPercentage ? null : discountValue,
       );
 
       if (success && mounted) {
@@ -115,29 +111,11 @@ class _CreateCouponScreenState extends State<CreateCouponScreen> {
               ),
               SizedBox(height: 3.h),
               
-              Row(
-                children: [
-                  Text('Discount Type:'),
-                  const SizedBox(width: 16),
-                  Switch(
-                    value: _isPercentage,
-                    onChanged: (value) {
-                      setState(() {
-                        _isPercentage = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Text(_isPercentage ? 'Percentage (%)' : 'Fixed Amount (ج.م)'),
-                ],
-              ),
-              SizedBox(height: 3.h),
-              
               _buildTextField(
                 controller: _discountController,
-                label: _isPercentage ? 'Discount Percentage (%)' : 'Discount Amount (ج.م)',
-                hint: _isPercentage ? '0' : '0.00',
-                keyboardType: _isPercentage ? TextInputType.number : TextInputType.numberWithOptions(decimal: true),
+                label: 'Discount Percentage (%)',
+                hint: '0',
+                keyboardType: TextInputType.number,
                 validator: (v) => v!.isEmpty ? 'Value is required' : null,
               ),
               SizedBox(height: 3.h),

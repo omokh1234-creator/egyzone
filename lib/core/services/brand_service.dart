@@ -44,12 +44,18 @@ class BrandService {
   /// Create a new brand
   static Future<Map<String, dynamic>?> createBrand(String name) async {
     try {
+      final url = Uri.parse('${AuthService.baseUrl}/api/Brands/CreateBrand');
       final headers = await AuthService.authHeaders;
-      final response = await http.post(
-        Uri.parse('${AuthService.baseUrl}/api/Brands'),
-        headers: headers,
-        body: jsonEncode({'name': name}),
-      );
+      
+      // MultipartRequest doesn't use 'Content-Type': 'application/json'
+      headers.remove('Content-Type');
+
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll(headers)
+        ..fields['Name'] = name;
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = AuthService.parseResponseMap(response.body);

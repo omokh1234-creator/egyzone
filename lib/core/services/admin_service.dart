@@ -153,16 +153,12 @@ class AdminService {
     required int discountPercent,
     required DateTime expiryDate,
     required int maxUsage,
-    bool isPercentage = true,
-    double? discountAmount,
   }) async {
     final body = jsonEncode({
       'code': code,
       'discountPercent': discountPercent,
       'expiryDate': expiryDate.toIso8601String(),
       'maxUsage': maxUsage,
-      'isPercentage': isPercentage,
-      'discountAmount': discountAmount,
     });
     debugPrint('AdminService createCoupon: $body');
 
