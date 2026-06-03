@@ -192,7 +192,7 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     }
 
     tempSuggestions.sort(
-        (a, b) => (a['matchIndex'] as int? ?? 9999).compareTo((b['matchIndex'] as int? ?? 9999));
+        (a, b) => (a['matchIndex'] as int? ?? 9999).compareTo((b['matchIndex'] as int? ?? 9999)));
 
     setState(() {
       _searchSuggestions = tempSuggestions
