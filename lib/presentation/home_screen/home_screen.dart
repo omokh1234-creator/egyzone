@@ -8,7 +8,6 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/providers/category_provider.dart';
 import '../../core/providers/notification_provider.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/services/brand_service.dart';
 import '../../core/services/product_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_bottom_bar.dart';
@@ -31,11 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedSubcategory = '';
   String _selectedBrand = '';
 
-  /// Selected subcategory ID for API filtering
-  int? _selectedSubcategoryId;
-  /// Selected brand ID for API filtering
-  int? _selectedBrandId;
-
   /// All products fetched from the API (unfiltered master list).
   List<Product> _allProducts = [];
 
@@ -44,19 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isLoadingProducts = false;
 
-  /// Brands fetched from the API
-  List<Map<String, dynamic>> _brands = [];
-  bool _isLoadingBrands = false;
-
-  /// Unique, sorted brand names relevant to the current category+subcategory
-  /// selection. Derived from API brands.
+  /// Unique, sorted brand names relevant to the current subcategory selection
+  /// Derived from CategoryProvider which has brands organized by subcategory
   List<String> get _availableBrands {
-    return _brands
-        .map((b) => b['name'] as String? ?? '')
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    if (_selectedSubcategory.isEmpty) return [];
+    final categoryProvider = context.read<CategoryProvider>();
+    final categoryObj = categoryProvider.findCategory(_selectedCategory);
+    final subObj = categoryProvider.findSubCategory(categoryObj, _selectedSubcategory);
+    if (subObj == null) return [];
+    return categoryProvider.brandNames(subObj)..sort();
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -70,26 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
       await Future.wait([
         context.read<CategoryProvider>().fetchCategories(),
         _fetchAllProducts(),
-        _fetchBrands(),
       ]);
     });
   }
 
   Future<void> _fetchBrands() async {
-    setState(() => _isLoadingBrands = true);
-    try {
-      final brands = await BrandService.getBrands();
-      if (mounted) {
-        setState(() {
-          _brands = brands;
-          _isLoadingBrands = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingBrands = false);
-      }
-    }
+    // No longer needed - brands are now fetched from CategoryProvider
   }
 
   @override
@@ -108,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final products = await ProductService.fetchProducts(
         isApproved: true,
-        brandId: _selectedBrandId,
         pageSize: 100,
       );
       if (mounted) {
@@ -190,9 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedCategory = category;   // '' when deselected
       _selectedSubcategory = '';      // reset downstream
-      _selectedSubcategoryId = null;
       _selectedBrand = '';
-      _selectedBrandId = null;
     });
     _applyFilter();
   }
@@ -204,22 +177,14 @@ class _HomeScreenState extends State<HomeScreen> {
     
     setState(() {
       _selectedSubcategory = sub;     // '' when deselected
-      _selectedSubcategoryId = subObj?.subCategoryId;
       _selectedBrand = '';
-      _selectedBrandId = null;
     });
     _applyFilter();
   }
 
   void _onBrandSelected(String brand) {
-    final selectedBrand = _brands.firstWhere(
-      (b) => b['name'] == brand,
-      orElse: () => <String, dynamic>{},
-    );
-    final brandId = selectedBrand['brandId'] as int?;
     setState(() {
       _selectedBrand = brand; // '' when deselected
-      _selectedBrandId = brandId;
     });
     _applyFilter();
   }
