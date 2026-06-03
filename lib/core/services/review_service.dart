@@ -9,9 +9,10 @@ class ReviewService {
 
   /// Fetches all reviews for a specific product
   static Future<List<ProductReview>> getProductReviews(int productId) async {
+    final headers = await AuthService.authHeaders;
     final response = await http.get(
       Uri.parse('${AuthService.baseUrl}$_endpoint/product/$productId'),
-      headers: AuthService.publicHeaders,
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
