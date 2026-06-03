@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/category_provider.dart';
 import '../../../core/app_export.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
@@ -16,21 +18,10 @@ class NoResultsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final categoryProvider = context.watch<CategoryProvider>();
 
-    // Matched to HomeScreen categories exactly
-    final suggestions = [
-      'Electronics',
-      'Fashion',
-      'Home, Furniture & Kitchen',
-      'Beauty & Personal Care',
-      'Grocery & Essentials',
-      'Health & Fitness',
-      'Books & Office',
-      'Toys & Baby',
-      'Automotive & Tools',
-      'Sports & Outdoor',
-      'Digital Products',
-    ];
+    // Dynamic categories from provider
+    final suggestions = categoryProvider.categoryNames;
 
     return Center(
       child: SingleChildScrollView(
@@ -59,45 +50,47 @@ class NoResultsWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            Text(
-              'Try searching for:',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+            if (suggestions.isNotEmpty) ...[
+              Text(
+                'Try searching for:',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: suggestions.map((suggestion) {
-                return InkWell(
-                  onTap: () => onCategoryTap?.call(suggestion),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        width: 1,
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: suggestions.map((suggestion) {
+                  return InkWell(
+                    onTap: () => onCategoryTap?.call(suggestion),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        suggestion,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      suggestion,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       ),
