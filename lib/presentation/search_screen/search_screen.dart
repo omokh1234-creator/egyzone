@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:egyzone/presentation/product_details_screen/product_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/custom_icon_widget.dart';
 import '../../core/models/product_model.dart';
+import '../../core/providers/category_provider.dart';
 import '../../core/services/product_service.dart';
 import './widgets/empty_search_widget.dart';
 import './widgets/filter_bottom_sheet_widget.dart';
