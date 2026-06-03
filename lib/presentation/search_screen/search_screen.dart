@@ -159,7 +159,19 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
 
     final tempSuggestions = <Map<String, dynamic>>[];
     final lowerQuery = query.toLowerCase();
+    final categoryProvider = context.read<CategoryProvider>();
 
+    // Add category suggestions
+    for (final category in categoryProvider.categoryNames) {
+      if (category.toLowerCase().contains(lowerQuery)) {
+        tempSuggestions.add({
+          'type': 'category',
+          'text': category,
+        });
+      }
+    }
+
+    // Add product suggestions
     for (var product in _allProducts) {
       final String productCategory = product.normalizedCategory;
       final matchesCategory = _selectedCategories.isEmpty ||
@@ -180,7 +192,7 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     }
 
     tempSuggestions.sort(
-        (a, b) => (a['matchIndex'] as int).compareTo(b['matchIndex'] as int));
+        (a, b) => (a['matchIndex'] as int? ?? 9999).compareTo((b['matchIndex'] as int? ?? 9999));
 
     setState(() {
       _searchSuggestions = tempSuggestions
