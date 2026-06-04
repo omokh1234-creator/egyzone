@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'package:egyzone/presentation/product_details_screen/product_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../widgets/custom_icon_widget.dart';
 import '../../core/models/product_model.dart';
 import '../../core/providers/category_provider.dart';
 import '../../core/services/product_service.dart';
@@ -16,13 +14,11 @@ import './widgets/search_bar_widget.dart';
 import './widgets/search_suggestions_widget.dart';
 
 class SearchScreen extends StatefulWidget {
-  final String? initialQuery;
   final String? initialCategory;
   final String? initialSortBy;
 
   const SearchScreen({
     super.key,
-    this.initialQuery,
     this.initialCategory,
     this.initialSortBy,
   });
@@ -54,28 +50,17 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.initialSortBy != null) {
-      _sortBy = widget.initialSortBy!;
-    }
-    if (widget.initialCategory != null) {
-      _selectedCategories = [widget.initialCategory!];
-    }
     _loadRecentSearches();
-    _fetchProducts();
-
-    // Only focus if we aren't auto-searching
-    if (widget.initialCategory == null && widget.initialQuery == null) {
-      _searchFocusNode.requestFocus();
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // Refresh products when app is resumed
-      _fetchProducts();
-    }
+    _fetchProducts().then((_) {
+      if (widget.initialCategory != null) {
+        _selectedCategories = [widget.initialCategory!];
+        _performSearch('');
+      } else if (widget.initialSortBy != null) {
+        _sortBy = widget.initialSortBy!;
+        _performSearch('');
+      }
+    });
+    _searchFocusNode.requestFocus();
   }
 
   @override
@@ -87,37 +72,55 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  Future<void> _fetchProducts({String? searchQuery}) async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchProducts();
+    }
+  }
+
+  Future<void> _fetchProducts() async {
     setState(() => _isLoadingProducts = true);
     try {
       final products = await ProductService.fetchProducts(
-        search: searchQuery,
-        isApproved: null, // Include both approved and unapproved products
-        pageSize: 500, // Fetch even more products for search
+        isApproved: true,
+        pageSize: 1000,
       );
-      debugPrint('Search screen fetched ${products.length} products for query: $searchQuery');
-      setState(() {
-        _allProducts = products;
-      });
-
-      // Sync the CategoryProvider with the actual products found in the list
       if (mounted) {
+        setState(() {
+          _allProducts = products;
+        });
         context.read<CategoryProvider>().updateFromProducts(products);
       }
-
-      // If initialized with specific criteria, perform search automatically
-      if (widget.initialQuery != null ||
-          widget.initialCategory != null ||
-          widget.initialSortBy != null) {
-        if (widget.initialQuery != null) {
-          _searchController.text = widget.initialQuery!;
-        }
-        _performSearch(_searchController.text);
-      }
     } catch (e) {
-      // Silently fail — search will just show empty
+      debugPrint('Error fetching products: $e');
     } finally {
       if (mounted) setState(() => _isLoadingProducts = false);
+    }
+  }
+
+  Future<void> _performApiSearch(String query) async {
+    setState(() => _isSearching = true);
+    try {
+      final products = await ProductService.fetchProducts(
+        search: query.isEmpty ? null : query,
+        minPrice: _priceRange.start > 0 ? _priceRange.start : null,
+        maxPrice: _priceRange.end < 20000 ? _priceRange.end : null,
+        isApproved: true,
+        pageSize: 1000,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _searchResults = products;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error searching products: $e');
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
     }
   }
 
@@ -140,14 +143,6 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     setState(() {});
   }
 
-  Future<void> _deleteRecentSearch(String query) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _recentSearches.remove(query);
-    });
-    await prefs.setStringList('recent_searches', _recentSearches);
-  }
-
   void _generateSuggestions(String query) {
     if (query.isEmpty) {
       setState(() {
@@ -157,88 +152,42 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
       return;
     }
 
-    final tempSuggestions = <Map<String, dynamic>>[];
-    final lowerQuery = query.toLowerCase();
-    final categoryProvider = context.read<CategoryProvider>();
+    // Use API to get search results for suggestions
+    _performApiSearch(query).then((_) {
+      final tempSuggestions = <Map<String, dynamic>>[];
+      final categoryProvider = context.read<CategoryProvider>();
 
-    // Add category suggestions
-    for (final category in categoryProvider.categoryNames) {
-      if (category.toLowerCase().contains(lowerQuery)) {
-        tempSuggestions.add({
-          'type': 'category',
-          'text': category,
-        });
+      // Add category suggestions with subcategories
+      final lowerQuery = query.toLowerCase();
+      for (final category in categoryProvider.categories) {
+        if (category.name.toLowerCase().contains(lowerQuery)) {
+          final subCategories = category.subCategories.map((s) => s.name).toList();
+          tempSuggestions.add({
+            'type': 'category',
+            'text': category.name,
+            'subCategories': subCategories,
+          });
+        }
       }
-    }
 
-    // Add product suggestions
-    for (var product in _allProducts) {
-      final String productCategory = product.normalizedCategory;
-      final matchesCategory = _selectedCategories.isEmpty ||
-          _selectedCategories.any((sel) => _namesMatch(productCategory, sel));
-
-      if (!matchesCategory) continue;
-
-      final name = product.name;
-      final index = name.toLowerCase().indexOf(lowerQuery);
-
-      if (index != -1) {
+      // Add product suggestions from API results
+      for (var product in _searchResults) {
         tempSuggestions.add({
           'type': 'product',
-          'text': name,
-          'matchIndex': index,
+          'text': product.name,
+          'imageUrl': product.imageUrl,
+          'price': product.price,
         });
       }
-    }
 
-    tempSuggestions.sort(
-        (a, b) => (a['matchIndex'] as int? ?? 9999).compareTo((b['matchIndex'] as int? ?? 9999)));
-
-    setState(() {
-      _searchSuggestions = tempSuggestions
-          .map((e) => {'type': e['type'], 'text': e['text']})
-          .take(8)
-          .toList();
-      _showSuggestions = _searchSuggestions.isNotEmpty;
+      setState(() {
+        _searchSuggestions = tempSuggestions.take(10).toList();
+        _showSuggestions = _searchSuggestions.isNotEmpty;
+      });
     });
   }
 
-  bool _namesMatch(String apiName, String uiName) {
-    String norm(String s) => s
-        .toLowerCase()
-        .trim()
-        .replaceAll(',', '')
-        .replaceAll(RegExp(r'\s+'), ' ');
-    String compact(String s) => norm(s).replaceAll(' ', '');
-
-    final na = norm(apiName);
-    final nb = norm(uiName);
-
-    if (na == nb) return true; // exact after normalise
-    if (compact(apiName) == compact(uiName)) return true; // compound words
-
-    // Use word boundaries to prevent "Men" matching "Women"
-    final nbEscaped = RegExp.escape(nb);
-    final naEscaped = RegExp.escape(na);
-
-    final hasWordBInA = RegExp('\\b$nbEscaped\\b').hasMatch(na);
-    final hasWordAInB = RegExp('\\b$naEscaped\\b').hasMatch(nb);
-
-    if (hasWordBInA || hasWordAInB) return true;
-
-    // Fallback for partial matches that are NOT "men" vs "women"
-    if ((nb == 'men' && na.contains('women')) ||
-        (na == 'men' && nb.contains('women'))) {
-      return false;
-    }
-
-    return na.contains(nb) || nb.contains(na);
-  }
-
   void _performSearch(String query) {
-    if (query.trim().isEmpty &&
-        _selectedCategories.isEmpty &&
-        _sortBy == 'Relevance') return;
     _searchFocusNode.unfocus();
     _saveRecentSearch(query);
 
@@ -248,24 +197,19 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
       _searchController.text = query;
     });
 
-    // Use API search instead of client-side filtering
-    _fetchProducts(searchQuery: query.trim().isEmpty ? null : query).then((_) {
-      // Apply additional filters (category, price, rating) on the API results
+    // If query is empty and category is selected, use client-side filtering from all products
+    if (query.isEmpty && _selectedCategories.isNotEmpty) {
       var results = _allProducts.where((product) {
-        final String productCategory = product.normalizedCategory;
-
-        final matchesCategory = _selectedCategories.isEmpty ||
-            _selectedCategories.any((sel) => _namesMatch(productCategory, sel));
-
-        final double price = product.price;
-        final matchesPrice =
-            price >= _priceRange.start && price <= _priceRange.end;
-
-        final matchesRating = product.rating >= _minRating;
-
-        return matchesCategory && matchesPrice && matchesRating;
+        return _selectedCategories.any((sel) => 
+            product.categoryName?.toLowerCase() == sel.toLowerCase());
       }).toList();
 
+      // Filter by rating
+      if (_minRating > 0) {
+        results = results.where((product) => product.rating >= _minRating).toList();
+      }
+
+      // Sort results
       if (_sortBy == 'Price Low-High') {
         results.sort((a, b) => a.price.compareTo(b.price));
       } else if (_sortBy == 'Price High-Low') {
@@ -280,7 +224,41 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         _searchResults = results;
         _isSearching = false;
       });
-    });
+    } else {
+      // Use API-based search for text queries
+      _performApiSearch(query).then((_) {
+        // Apply client-side filters for category and rating (API doesn't support these)
+        var results = _searchResults;
+        
+        // Filter by category
+        if (_selectedCategories.isNotEmpty) {
+          results = results.where((product) {
+            return _selectedCategories.any((sel) => 
+                product.categoryName?.toLowerCase() == sel.toLowerCase());
+          }).toList();
+        }
+
+        // Filter by rating
+        if (_minRating > 0) {
+          results = results.where((product) => product.rating >= _minRating).toList();
+        }
+
+        // Sort results
+        if (_sortBy == 'Price Low-High') {
+          results.sort((a, b) => a.price.compareTo(b.price));
+        } else if (_sortBy == 'Price High-Low') {
+          results.sort((a, b) => b.price.compareTo(a.price));
+        } else if (_sortBy == 'Rating') {
+          results.sort((a, b) => b.rating.compareTo(a.rating));
+        } else if (_sortBy == 'Newest') {
+          results.sort((a, b) => b.productId.compareTo(a.productId));
+        }
+
+        setState(() {
+          _searchResults = results;
+        });
+      });
+    }
   }
 
   void _showFilterBottomSheet() {
@@ -308,74 +286,49 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home-screen',
-          (route) => false,
-        );
-      },
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back,
-                color: Theme.of(context).colorScheme.onSurface),
-            onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/home-screen',
-                (route) => false,
-              );
-            },
-          ),
-          titleSpacing: 0,
-          title: SearchBarWidget(
-            controller: _searchController,
-            focusNode: _searchFocusNode,
-            onChanged: (val) {
-              _debounceTimer?.cancel();
-              _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-                _generateSuggestions(val);
-              });
-            },
-            onSubmitted: _performSearch,
-            onClear: () {
-              setState(() {
-                _showSuggestions = false;
-                _selectedCategories = [];
-                _priceRange = const RangeValues(0, 20000);
-                _minRating = 0.0;
-                _sortBy = 'Relevance';
-              });
-              if (_searchController.text.isNotEmpty) {
-                _searchController.clear();
-                _performSearch('');
-              } else {
-                setState(() {
-                  _searchResults.clear();
-                });
-              }
-            },
-          ),
-          actions: [
-            IconButton(
-              icon: CustomIconWidget(
-                  iconName: 'tune',
-                  color: Theme.of(context).colorScheme.onSurface,
-                  size: 24),
-              onPressed: _showFilterBottomSheet,
-            ),
-            const SizedBox(width: 8),
-          ],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
         ),
-        body: _buildBody(),
+        titleSpacing: 0,
+        title: SearchBarWidget(
+          controller: _searchController,
+          focusNode: _searchFocusNode,
+          onChanged: (val) {
+            _debounceTimer?.cancel();
+            _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+              _generateSuggestions(val);
+            });
+          },
+          onSubmitted: _performSearch,
+          onClear: () {
+            setState(() {
+              _showSuggestions = false;
+              _searchResults.clear();
+            });
+            _searchController.clear();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh,
+                color: Theme.of(context).colorScheme.onSurface),
+            onPressed: _fetchProducts,
+          ),
+          IconButton(
+            icon: Icon(Icons.filter_list,
+                color: Theme.of(context).colorScheme.onSurface),
+            onPressed: _showFilterBottomSheet,
+          ),
+        ],
       ),
+      body: _buildBody(),
     );
   }
 
@@ -391,7 +344,20 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     if (_showSuggestions && _searchSuggestions.isNotEmpty) {
       return SearchSuggestionsWidget(
         suggestions: _searchSuggestions,
-        onSuggestionTap: (suggestion) => _performSearch(suggestion),
+        onSuggestionTap: (suggestion, type) {
+          setState(() {
+            _showSuggestions = false;
+            _searchController.text = suggestion;
+          });
+          if (type == 'category') {
+            setState(() {
+              _selectedCategories = [suggestion];
+            });
+            _performSearch('');
+          } else {
+            _performSearch(suggestion);
+          }
+        },
       );
     }
 
@@ -400,7 +366,13 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         return RecentSearchesWidget(
           searches: _recentSearches,
           onSearchSelected: _performSearch,
-          onDeleteSearch: _deleteRecentSearch,
+          onDeleteSearch: (query) async {
+            final prefs = await SharedPreferences.getInstance();
+            setState(() {
+              _recentSearches.remove(query);
+            });
+            await prefs.setStringList('recent_searches', _recentSearches);
+          },
           onClearAll: () async {
             final prefs = await SharedPreferences.getInstance();
             await prefs.remove('recent_searches');
@@ -409,18 +381,22 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         );
       }
       return EmptySearchWidget(
-          onCategoryTap: (category) => _performSearch(category));
+          onCategoryTap: (category) {
+            setState(() {
+              _selectedCategories = [category];
+            });
+            _performSearch('');
+          });
     }
 
     if (_searchResults.isNotEmpty) {
       return ProductGridWidget(
         products: _searchResults.map((p) => p.toMap()).toList(),
         onProductTap: (product) {
-          Navigator.push(
+          Navigator.pushNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => ProductDetailScreen(productData: product),
-            ),
+            '/product-detail-screen',
+            arguments: product,
           );
         },
       );
@@ -428,7 +404,12 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
 
     return NoResultsWidget(
       searchQuery: _searchController.text,
-      onCategoryTap: (category) => _performSearch(category),
+      onCategoryTap: (category) {
+        setState(() {
+          _selectedCategories = [category];
+        });
+        _performSearch('');
+      },
     );
   }
 }

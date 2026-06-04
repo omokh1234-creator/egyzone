@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/app_export.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
-/// Search bar widget with auto-focus and clear functionality
 class SearchBarWidget extends StatelessWidget {
   const SearchBarWidget({
     super.key,
@@ -38,8 +37,7 @@ class SearchBarWidget extends StatelessWidget {
         focusNode: focusNode,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
-        textInputAction:
-            TextInputAction.search, // Shows "Search" icon on keyboard
+        textInputAction: TextInputAction.search,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: 'Search for products...',
@@ -51,10 +49,9 @@ class SearchBarWidget extends StatelessWidget {
             child: CustomIconWidget(
               iconName: 'search',
               color: theme.colorScheme.onSurfaceVariant,
-              size: 20, // Slightly smaller to fit better in 48dp height
+              size: 20,
             ),
           ),
-          // Using ValueListenableBuilder so the 'clear' button toggles without a full setstate
           suffixIcon: ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
             builder: (context, value, child) {

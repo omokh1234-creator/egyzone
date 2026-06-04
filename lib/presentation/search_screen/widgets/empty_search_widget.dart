@@ -4,7 +4,6 @@ import '../../../core/providers/category_provider.dart';
 import '../../../core/app_export.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
-/// Empty search state with suggestions matched to your Home Screen categories
 class EmptySearchWidget extends StatelessWidget {
   const EmptySearchWidget({
     super.key,
@@ -18,11 +17,7 @@ class EmptySearchWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final categoryProvider = context.watch<CategoryProvider>();
 
-    // Dynamic categories from provider
-    final categories = categoryProvider.categories.map((c) => {
-      'name': c.name,
-      'icon': _getIconForCategory(c.name),
-    }).toList();
+    final categories = categoryProvider.categories;
 
     return Center(
       child: SingleChildScrollView(
@@ -59,51 +54,105 @@ class EmptySearchWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: categories.map((category) {
+              ...categories.map((category) => _buildCategoryCard(context, theme, category)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(BuildContext context, ThemeData theme, dynamic category) {
+    final categoryName = category.name as String;
+    final subCategories = category.subCategories as List<dynamic>? ?? [];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => onCategoryTap?.call(categoryName),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: _getIconForCategory(categoryName),
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      categoryName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  CustomIconWidget(
+                    iconName: 'chevron_right',
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (subCategories.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: Border(
+                  top: BorderSide(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: subCategories.map((sub) {
+                  final subName = sub.name as String;
                   return InkWell(
-                    onTap: () => onCategoryTap?.call(category['name'] as String),
-                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => onCategoryTap?.call(categoryName),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                        horizontal: 12,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                          color: theme.colorScheme.outline.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CustomIconWidget(
-                            iconName: category['icon'] as String,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            category['name'] as String,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        subName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   );
                 }).toList(),
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -121,6 +170,6 @@ class EmptySearchWidget extends StatelessWidget {
     if (n.contains('auto') || n.contains('tool')) return 'build';
     if (n.contains('sport')) return 'sports_soccer';
     if (n.contains('digit')) return 'qr_code_2';
-    return 'category'; // default
+    return 'category';
   }
 }

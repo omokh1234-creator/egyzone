@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
@@ -10,14 +9,13 @@ class BrandService {
         Uri.parse('${AuthService.baseUrl}/api/Brands'),
         headers: AuthService.publicHeaders,
       );
-      print('BrandService.getBrands response: ${response.statusCode} ${response.body}');
+      print(
+          'BrandService.getBrands response: ${response.statusCode} ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = AuthService.parseResponseList(response.body);
         print('BrandService.getBrands parsed data: $data');
-        return data
-            .map((item) => item as Map<String, dynamic>)
-            .toList();
+        return data.map((item) => item as Map<String, dynamic>).toList();
       }
     } catch (e) {
       print('BrandService.getBrands error: $e');
@@ -46,7 +44,7 @@ class BrandService {
     try {
       final url = Uri.parse('${AuthService.baseUrl}/api/Brands/CreateBrand');
       final headers = await AuthService.authHeaders;
-      
+
       // MultipartRequest doesn't use 'Content-Type': 'application/json'
       headers.remove('Content-Type');
 

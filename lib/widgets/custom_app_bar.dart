@@ -259,7 +259,7 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// 🤖 Chat bot button with EGY color (primary)
+/// Chat button with primary color
 class _ChatBotButton extends StatelessWidget {
   const _ChatBotButton({required this.onTap});
 
@@ -277,7 +277,7 @@ class _ChatBotButton extends StatelessWidget {
         size: 24,
       ),
       onPressed: onTap,
-      tooltip: 'AI Assistant',
+      tooltip: 'Chat',
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/services/review_service.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/report_service.dart';
 
 class ProductReviewsWidget extends StatefulWidget {
   final dynamic productId;
@@ -92,6 +93,80 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
           ),
         );
         if (success) _fetchReviews();
+      }
+    }
+  }
+
+  Future<void> _reportReview(int reviewId) async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.isLoggedIn) {
+      Navigator.pushNamed(context, '/login-screen');
+      return;
+    }
+
+    final reasonController = TextEditingController();
+    final theme = Theme.of(context);
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Review'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Why are you reporting this review?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Enter reason...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(context, true);
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    if (submitted == true && reasonController.text.trim().isNotEmpty) {
+      try {
+        await ReportService.createReport(
+          contentType: 'Review',
+          contentId: reviewId,
+          reason: reasonController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Report submitted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to submit report: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -292,6 +367,7 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                   isOwner: isOwner,
                   onDelete: () => _deleteReview(review.reviewId!),
                   onEdit: () => _editReview(review),
+                  onReport: () => _reportReview(review.reviewId!),
                 );
               },
             ),
@@ -432,12 +508,14 @@ class _ReviewItem extends StatelessWidget {
   final bool isOwner;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
+  final VoidCallback onReport;
 
   const _ReviewItem({
     required this.review,
     required this.isOwner,
     required this.onDelete,
     required this.onEdit,
+    required this.onReport,
   });
 
   @override
@@ -515,6 +593,14 @@ class _ReviewItem extends StatelessWidget {
                       tooltip: 'Delete my review',
                     ),
                   ],
+                )
+              else
+                IconButton(
+                  icon: Icon(Icons.flag_outlined, color: theme.colorScheme.onSurfaceVariant, size: 20),
+                  onPressed: onReport,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Report review',
                 ),
             ],
           ),

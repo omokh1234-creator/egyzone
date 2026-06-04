@@ -17,8 +17,10 @@ import './widgets/product_reviews_widget.dart';
 import './widgets/quantity_selector_widget.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/providers/saved_items_provider.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/product_service.dart';
+import '../../core/services/report_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Map<String, dynamic> productData;
@@ -190,6 +192,80 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  Future<void> _reportProduct() async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.isLoggedIn) {
+      Navigator.pushNamed(context, '/login-screen');
+      return;
+    }
+
+    final reasonController = TextEditingController();
+    final theme = Theme.of(context);
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Why are you reporting this product?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Enter reason...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(context, true);
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    if (submitted == true && reasonController.text.trim().isNotEmpty) {
+      try {
+        await ReportService.createReport(
+          contentType: 'Product',
+          contentId: _productId as int,
+          reason: reasonController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Report submitted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to submit report: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -272,6 +348,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         _dynamicRating = avg;
                       });
                     },
+                  ),
+                  SizedBox(height: 2.h),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: _reportProduct,
+                      icon: Icon(Icons.flag_outlined, color: theme.colorScheme.error),
+                      label: Text(
+                        'Report this product',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ),
                   ),
                   ProductSuggestionsWidget(
                     subCategoryId: _productData['subCategoryId'] as int?,

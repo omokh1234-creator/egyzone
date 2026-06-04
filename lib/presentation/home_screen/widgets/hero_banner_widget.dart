@@ -42,10 +42,10 @@ class _HeroBannerWidgetState extends State<HeroBannerWidget> {
   @override
   void initState() {
     super.initState();
-    _startAutoPlay();
+    _startPlay();
   }
 
-  void _startAutoPlay() {
+  void _startPlay() {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
         final nextPage = (_currentPage + 1) % _banners.length;
@@ -54,7 +54,7 @@ class _HeroBannerWidgetState extends State<HeroBannerWidget> {
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
-        _startAutoPlay();
+        _startPlay();
       }
     });
   }
@@ -88,8 +88,10 @@ class _HeroBannerWidgetState extends State<HeroBannerWidget> {
                   final action = banner['action'] as String?;
                   if (action == 'New Arrivals') {
                     Navigator.pushNamed(context, '/search-screen', arguments: {'sortBy': 'Newest'});
-                  } else if (action != null) {
-                    Navigator.pushNamed(context, '/search-screen', arguments: {'category': action});
+                  } else if (action == 'Fashion') {
+                    Navigator.pushNamed(context, '/search-screen', arguments: {'category': 'Fashion'});
+                  } else if (action == 'Electronics') {
+                    Navigator.pushNamed(context, '/search-screen', arguments: {'category': 'Electronics'});
                   }
                 },
                 child: _BannerCard(

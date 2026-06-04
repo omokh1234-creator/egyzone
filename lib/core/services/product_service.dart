@@ -82,6 +82,44 @@ class ProductService {
     ];
   }
 
+  // ─── Brands ────────────────────────────────────────────────────────────────
+
+  /// Fetches all brands from the API.
+  ///
+  /// API: GET /api/Brands
+  /// Response: [{brandId, name, products: [...]}]
+  static Future<List<Map<String, dynamic>>> fetchBrands() async {
+    final response = await http.get(
+      Uri.parse('${AuthService.baseUrl}/api/Brands'),
+      headers: AuthService.publicHeaders,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load brands (${response.statusCode})');
+    }
+
+    final List<dynamic> data = AuthService.parseResponseList(response.body);
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// Fetches subcategories with their products from the API.
+  ///
+  /// API: GET /api/SubCategories
+  /// Response: [{subCategoryId, name, categoryId, products: [...]}]
+  static Future<List<Map<String, dynamic>>> fetchSubCategoriesWithProducts() async {
+    final response = await http.get(
+      Uri.parse('${AuthService.baseUrl}/api/SubCategories'),
+      headers: AuthService.publicHeaders,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load subcategories (${response.statusCode})');
+    }
+
+    final List<dynamic> data = AuthService.parseResponseList(response.body);
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   // ─── Products ──────────────────────────────────────────────────────────────
 
   /// Fetches products with optional filters.

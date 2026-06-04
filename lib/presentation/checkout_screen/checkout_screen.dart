@@ -277,7 +277,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final errorMsg = e.toString().replaceAll('Exception: ', '');
       if (errorMsg.contains('فاضيه')) {
         Fluttertoast.showToast(
-            msg: 'Sync issue. Trying auto-fix, please press order again.',
+            msg: 'Sync issue. Please press order again.',
             toastLength: Toast.LENGTH_LONG);
       } else {
         Fluttertoast.showToast(msg: errorMsg);

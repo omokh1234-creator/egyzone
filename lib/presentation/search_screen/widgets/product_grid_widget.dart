@@ -23,8 +23,7 @@ class ProductGridWidget extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio:
-            0.58, // Matches the height needed for your price/info style
+        childAspectRatio: 0.58,
         crossAxisSpacing: 3.w,
         mainAxisSpacing: 2.h,
       ),
@@ -33,7 +32,6 @@ class ProductGridWidget extends StatelessWidget {
         final product = products[index];
         return _ProductCard(
           product: product,
-          index: index, // Used for Hero tag consistency
           onTap: () => onProductTap?.call(product),
         );
       },
@@ -42,10 +40,9 @@ class ProductGridWidget extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product, required this.index, this.onTap});
+  const _ProductCard({required this.product, this.onTap});
 
   final Map<String, dynamic> product;
-  final int index;
   final VoidCallback? onTap;
 
   static String _formatPrice(double value) {
@@ -63,7 +60,6 @@ class _ProductCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isSaved = context.select<SavedItemsProvider, bool>((p) => p.isSaved(product['productId'] ?? product['id']));
 
-    // Data Extraction
     final String imageUrl = product['imageUrl'] as String? ?? '';
     final double price = (product['price'] as num? ?? 0.0).toDouble();
     final double originalPrice = (product['originalPrice'] as num? ?? price).toDouble();
@@ -83,24 +79,18 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // IMAGE SECTION (With Hero tag to match your Carousel)
             Expanded(
               child: Stack(
                 children: [
-                  Hero(
-                    tag: 'product_image_0_$index', // Unique tag for transition
-                    child: ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(12)),
-                      child: CustomImageWidget(
-                        imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: CustomImageWidget(
+                      imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  // Favorite Toggle (Detail Screen Style)
                   Positioned(
                     top: 8,
                     right: 8,
@@ -125,8 +115,6 @@ class _ProductCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // INFO SECTION (Matching your ProductInfoWidget exactly)
             Padding(
               padding: EdgeInsets.all(3.w),
               child: Column(
@@ -142,8 +130,6 @@ class _ProductCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 0.5.h),
-
-                  // Rating (Star color from your Info Widget)
                   Row(
                     children: [
                       const CustomIconWidget(
@@ -157,8 +143,6 @@ class _ProductCard extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: 1.h),
-
-                  // PRICE SECTION (Arabic ج.م and Format logic)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -216,8 +200,6 @@ class _ProductCard extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: 1.h),
-
-                  // Bottom Action (Standardized with your Detail screen)
                   SizedBox(
                     height: 4.5.h,
                     width: double.infinity,

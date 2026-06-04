@@ -149,65 +149,23 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_useNewCategory && _selectedCategoryId == null) {
+    if (_selectedSubCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select or create a category')),
-      );
-      return;
-    }
-    if (!_useNewSubCategory && _selectedSubCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select or create a subcategory')),
-      );
-      return;
-    }
-    if (_useNewCategory && _newCategoryController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a new category name')),
-      );
-      return;
-    }
-    if (_useNewSubCategory && _newSubCategoryController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a new subcategory name')),
-      );
-      return;
-    }
-    if (_useNewBrand && _newBrandController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a new brand name')),
+        const SnackBar(content: Text('Please select a subcategory')),
       );
       return;
     }
 
     setState(() => _isSubmitting = true);
 
-    int? finalBrandId = _selectedBrandId;
-    if (_useNewBrand) {
-      final newBrand = await BrandService.createBrand(_newBrandController.text.trim());
-      if (newBrand != null) {
-        finalBrandId = newBrand['brandId'];
-      }
-    }
-
     try {
-      final imagePaths = [
-        ..._existingImages.map((e) => e.path),
-        ..._selectedImages.map((e) => e.path),
-      ];
-
       final success = await SellerService.updateProduct(
         _productId,
         {
           'name': _nameController.text.trim(),
           'price': double.parse(_priceController.text.trim()),
-          'description': _descriptionController.text.trim(),
-          'categoryId': _useNewCategory ? 0 : _selectedCategoryId!,
-          'subCategoryId': _useNewSubCategory ? 0 : _selectedSubCategoryId!,
-          'categoryName': _useNewCategory ? _newCategoryController.text.trim() : null,
-          'subCategoryName': _useNewSubCategory ? _newSubCategoryController.text.trim() : null,
-          'brandId': finalBrandId,
-          'imageFiles': imagePaths,
+          'subCategoryId': _selectedSubCategoryId!,
+          'imageUrl': widget.productData['imageUrl'],
         },
       );
 

@@ -94,6 +94,16 @@ class AdminService {
     return response.statusCode == 200 || response.statusCode == 204;
   }
 
+  /// DELETE /api/Products/{id}
+  static Future<bool> deleteProduct(int id) async {
+    final response = await http.delete(
+      Uri.parse('${AuthService.baseUrl}/api/Products/$id'),
+      headers: await AuthService.authHeaders,
+    );
+    debugPrint('AdminService deleteProduct $id: ${response.statusCode}');
+    return response.statusCode == 200 || response.statusCode == 204;
+  }
+
   // ─── Reports ─────────────────────────────────────────────────────────────
   /// GET /api/Admin/reports?status=open|resolved|dismissed
   static Future<List<dynamic>> getReports({String? status}) async {

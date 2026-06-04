@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../core/app_export.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
-/// Recent searches display with chips and clear all option
 class RecentSearchesWidget extends StatelessWidget {
   const RecentSearchesWidget({
     super.key,
     required this.searches,
-    this.onSearchSelected, // Renamed for consistency with SearchScreen
+    this.onSearchSelected,
     this.onClearAll,
     this.onDeleteSearch,
   });
@@ -88,7 +87,6 @@ class RecentSearchesWidget extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       GestureDetector(
-                        // Used GestureDetector for better hit testing on the close icon
                         onTap: () => onDeleteSearch?.call(search),
                         child: Padding(
                           padding: const EdgeInsets.only(left: 4),

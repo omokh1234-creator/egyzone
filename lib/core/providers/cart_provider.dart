@@ -165,7 +165,7 @@ class CartProvider extends ChangeNotifier {
             });
           }
 
-          // --- SMART MERGE ---
+          // Merge server items with local items
           for (final serverItem in serverItemsList) {
             final localIndex = _items.indexWhere((local) => local['id'].toString() == serverItem['id'].toString());
             if (localIndex >= 0) {
@@ -189,7 +189,7 @@ class CartProvider extends ChangeNotifier {
 
           _saveToPrefs();
           notifyListeners();
-          debugPrint('CartProvider: Smart Sync completed. Total items: ${_items.length}');
+          debugPrint('CartProvider: Sync completed. Total items: ${_items.length}');
         }
       }
     } catch (e) {
@@ -236,7 +236,7 @@ class CartProvider extends ChangeNotifier {
     final id = _resolveId(product);
     if (id == null) return;
 
-    // Smart image resolution for local add
+    // Resolve image URL for local add
     final productMap = product['product'] as Map<String, dynamic>?;
     final imageList = (product['images'] ?? productMap?['images'] ?? product['Images']) as List<dynamic>?;
     String resolvedUrl = (product['imageUrl'] ?? product['ImageUrl'] ?? productMap?['imageUrl'] ?? product['image'] ?? productMap?['image'] ?? '') as String;

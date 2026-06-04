@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/category_provider.dart';
-import '../../../widgets/custom_icon_widget.dart';
 
 class FilterBottomSheetWidget extends StatefulWidget {
   final List<String> selectedCategories;
@@ -49,6 +48,7 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final categoryProvider = context.watch<CategoryProvider>();
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -58,7 +58,6 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
       ),
       child: Column(
         children: [
-          // Drag Handle
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
@@ -68,7 +67,6 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -89,7 +87,6 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
               ],
             ),
           ),
-          // Content
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -99,32 +96,39 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
                   _buildSectionTitle(theme, 'Sort By'),
                   Wrap(
                     spacing: 8,
-                    children: _sortOptions
-                        .map((opt) => ChoiceChip(
-                              label: Text(opt),
-                              selected: _sortBy == opt,
-                              onSelected: (s) => setState(() => _sortBy = opt),
-                            ))
-                        .toList(),
+                    runSpacing: 8,
+                    children: _sortOptions.map((option) {
+                      return FilterChip(
+                        label: Text(option),
+                        selected: _sortBy == option,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _sortBy = option);
+                          }
+                        },
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle(theme, 'Categories'),
-                  Consumer<CategoryProvider>(
-                    builder: (context, provider, _) {
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: provider.categoryNames
-                            .map((cat) => FilterChip(
-                                  label: Text(cat),
-                                  selected: _selectedCategories.contains(cat),
-                                  onSelected: (s) => setState(() => s
-                                      ? _selectedCategories.add(cat)
-                                      : _selectedCategories.remove(cat)),
-                                ))
-                            .toList(),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: categoryProvider.categoryNames.map((category) {
+                      return FilterChip(
+                        label: Text(category),
+                        selected: _selectedCategories.contains(category),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedCategories.add(category);
+                            } else {
+                              _selectedCategories.remove(category);
+                            }
+                          });
+                        },
                       );
-                    },
+                    }).toList(),
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle(theme, 'Price Range'),
@@ -132,43 +136,44 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
                     values: _priceRange,
                     min: 0,
                     max: 20000,
-                    divisions: 200,
-                    labels: RangeLabels('EGP ${_priceRange.start.toInt()}',
-                        'EGP ${_priceRange.end.toInt()}'),
-                    onChanged: (v) => setState(() => _priceRange = v),
+                    divisions: 100,
+                    labels: RangeLabels(
+                      'ج.م ${_priceRange.start.toInt()}',
+                      'ج.م ${_priceRange.end.toInt()}',
+                    ),
+                    onChanged: (values) {
+                      setState(() => _priceRange = values);
+                    },
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle(theme, 'Minimum Rating'),
-                  Row(
-                    children: List.generate(5, (i) {
-                      final r = i + 1.0;
-                      return IconButton(
-                        icon: CustomIconWidget(
-                          iconName: _minRating >= r ? 'star' : 'star_border',
-                          color: _minRating >= r ? Colors.amber : Colors.grey,
-                          size: 32,
-                        ),
-                        onPressed: () => setState(() => _minRating = r),
-                      );
-                    }),
+                  Slider(
+                    value: _minRating,
+                    min: 0,
+                    max: 5,
+                    divisions: 10,
+                    label: '$_minRating',
+                    onChanged: (value) {
+                      setState(() => _minRating = value);
+                    },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        widget.onApply?.call(
+                          _selectedCategories,
+                          _priceRange,
+                          _minRating,
+                          _sortBy,
+                        );
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Apply Filters'),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-          ),
-          // Apply Button
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  widget.onApply?.call(
-                      _selectedCategories, _priceRange, _minRating, _sortBy);
-                  Navigator.pop(context);
-                },
-                child: const Text('Apply Filters'),
               ),
             ),
           ),
@@ -180,9 +185,12 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
   Widget _buildSectionTitle(ThemeData theme, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title,
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w600)),
+      child: Text(
+        title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

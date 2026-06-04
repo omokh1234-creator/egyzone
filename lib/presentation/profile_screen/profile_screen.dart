@@ -46,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Auto-refresh profile when user logs in (e.g. from guest prompt)
+    // Refresh profile when user logs in (e.g. from guest prompt)
     final auth = context.read<AuthProvider>();
     if (auth.isLoggedIn && _userProfile == null && !_isLoading) {
       _fetchUserProfile();
@@ -1324,81 +1324,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showLanguageDialog() {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final langProvider = context.read<LanguageProvider>();
     final currentCode = langProvider.locale.languageCode;
-
-    final languages = [
-      {'name': 'English', 'native': 'English', 'code': 'en'},
-      {'name': 'Arabic', 'native': 'العربية', 'code': 'ar'},
-    ];
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          currentCode == 'ar' ? 'اختر اللغة' : 'Select Language',
+          currentCode == 'ar' ? 'اللغة' : 'Language',
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: languages.map((lang) {
-            final isSelected = currentCode == lang['code'];
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.primary.withValues(alpha: 0.08)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? colorScheme.primary.withValues(alpha: 0.3)
-                      : colorScheme.outline.withValues(alpha: 0.1),
-                  width: 1.5,
-                ),
+          children: [
+            Icon(
+              Icons.language,
+              size: 60,
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              currentCode == 'ar' ? 'قريباً!' : 'Coming soon!',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
               ),
-              child: ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                leading: Text(
-                  lang['code'] == 'ar' ? '🇪🇬' : '🇬🇧',
-                  style: const TextStyle(fontSize: 24),
-                ),
-                title: Text(
-                  lang['native']!,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? colorScheme.primary : null,
-                  ),
-                ),
-                subtitle: lang['native'] != lang['name']
-                    ? Text(
-                        lang['name']!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                        ),
-                      )
-                    : null,
-                trailing: isSelected
-                    ? Icon(Icons.check_circle_rounded,
-                        color: colorScheme.primary, size: 22)
-                    : Icon(Icons.circle_outlined,
-                        color: colorScheme.outline.withValues(alpha: 0.4), size: 22),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  langProvider.setLocale(lang['code']!);
-                  final msg = lang['code'] == 'ar'
-                      ? 'تم تغيير اللغة إلى العربية'
-                      : 'Language changed to English';
-                  Fluttertoast.showToast(msg: msg);
-                },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              currentCode == 'ar' ? 'ميزة تغيير اللغة قريباً' : 'Language switching coming soon',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-            );
-          }).toList(),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              currentCode == 'ar' ? 'إغلاق' : 'Close',
+            ),
+          ),
+        ],
       ),
     );
   }

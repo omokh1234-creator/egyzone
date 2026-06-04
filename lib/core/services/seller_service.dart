@@ -68,65 +68,31 @@ class SellerService {
   }
 
   /// Update an existing product
-  /// Sets isApproved to false so admin must verify before publishing
-  /// Supports image uploads via multipart form data
+  /// Uses JSON PUT with UpdateProductDto schema
   static Future<bool> updateProduct(int productId, Map<String, dynamic> data) async {
     final url = Uri.parse('${AuthService.baseUrl}/api/Products/$productId');
     final headers = await AuthService.authHeaders;
-    
-    // Remove Content-Type to let MultipartRequest set it with boundary
-    headers.remove('Content-Type');
 
-    // Check if there are image files to upload
-    final List<String> imagePaths = data['imageFiles'] as List<String>? ?? [];
-    final bool hasImages = imagePaths.isNotEmpty;
+    // Build request body matching UpdateProductDto schema
+    final requestBody = {
+      'name': data['name'],
+      'price': data['price'],
+      'subCategoryId': data['subCategoryId'],
+      'imageUrl': data['imageUrl'],
+    };
 
-    if (hasImages) {
-      // Use multipart form data for image uploads
-      final request = http.MultipartRequest('PUT', url)
-        ..headers.addAll(headers);
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(requestBody),
+    );
 
-      // Add all data fields
-      data.forEach((key, value) {
-        if (key != 'imageFiles' && value != null) {
-          request.fields[key] = value.toString();
-        }
-      });
-
-      // Set isApproved to false to require admin verification
-      request.fields['IsApproved'] = 'false';
-      
-      // Handle brandId separately to ensure it's sent
-      if (data['brandId'] != null) {
-        request.fields['BrandId'] = data['brandId'].toString();
-      }
-
-      // Add image files
-      for (final path in imagePaths) {
-        final file = await http.MultipartFile.fromPath(
-          'ImageFiles',
-          path,
-          contentType: MediaType('image', 'jpeg'),
-        );
-        request.files.add(file);
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      return response.statusCode == 200 || response.statusCode == 204;
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return true;
     } else {
-      // Use simple JSON PUT if no images
-      // Set isApproved to false to require admin verification
-      data['IsApproved'] = false;
-      
-      final response = await http.put(
-        Uri.parse('${AuthService.baseUrl}/api/Products/$productId'),
-        headers: headers,
-        body: jsonEncode(data),
-      );
-
-      return response.statusCode == 200 || response.statusCode == 204;
+      final responseData = jsonDecode(response.body);
+      debugPrint('Product update error: ${response.statusCode} - ${response.body}');
+      throw Exception(responseData['message'] ?? responseData['error'] ?? 'Failed to update product: ${response.statusCode}');
     }
   }
 

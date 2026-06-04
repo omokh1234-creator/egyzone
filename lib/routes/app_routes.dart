@@ -53,7 +53,6 @@ class AppRoutes {
     search: (context) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       return SearchScreen(
-        initialQuery: args?['query'],
         initialCategory: args?['category'],
         initialSortBy: args?['sortBy'],
       );
