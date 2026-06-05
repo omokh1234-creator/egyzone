@@ -117,6 +117,23 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         if (batch.length < batchSize) break; // last page
         page++;
       }
+
+      // Filter locally to strictly match the search query
+      if (query.isNotEmpty) {
+        final lowerQuery = query.toLowerCase();
+        all.removeWhere((p) => !p.name.toLowerCase().contains(lowerQuery));
+        
+        // Sort so that products starting with the query appear first
+        all.sort((a, b) {
+          final aStarts = a.name.toLowerCase().startsWith(lowerQuery) ? 0 : 1;
+          final bStarts = b.name.toLowerCase().startsWith(lowerQuery) ? 0 : 1;
+          if (aStarts != bStarts) {
+            return aStarts.compareTo(bStarts);
+          }
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+      }
+
       if (mounted) {
         setState(() {
           _searchResults = all;
@@ -166,29 +183,6 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     _performApiSearch(query).then((_) {
       if (!mounted) return;
       final tempSuggestions = <Map<String, dynamic>>[];
-
-      // Categories to exclude from suggestions
-      const excludedCategories = {
-        'furniture',
-        'home & furniture',
-        'home and furniture',
-      };
-
-      // Add category suggestions with subcategories (excluding furniture)
-      final lowerQuery = query.toLowerCase();
-      for (final category in categoryProvider.categories) {
-        final catLower = category.name.toLowerCase().trim();
-        // Skip furniture-related categories
-        if (excludedCategories.any((ex) => catLower.contains('furnitur'))) continue;
-        if (category.name.toLowerCase().contains(lowerQuery)) {
-          final subCategories = category.subCategories.map((s) => s.name).toList();
-          tempSuggestions.add({
-            'type': 'category',
-            'text': category.name,
-            'subCategories': subCategories,
-          });
-        }
-      }
 
       // Add product suggestions from API results
       for (var product in _searchResults) {
