@@ -61,6 +61,11 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
             centerTitle: true,
             actions: [
               IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Notifications',
+                onPressed: () => Navigator.pushNamed(context, '/notifications-screen'),
+              ),
+              IconButton(
                 icon: const Icon(Icons.confirmation_number),
                 tooltip: 'Create Coupon',
                 onPressed: () => Navigator.pushNamed(context, '/admin/create-coupon'),

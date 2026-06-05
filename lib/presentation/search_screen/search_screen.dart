@@ -200,8 +200,7 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
     // If query is empty and category is selected, use client-side filtering from all products
     if (query.isEmpty && _selectedCategories.isNotEmpty) {
       var results = _allProducts.where((product) {
-        return _selectedCategories.any((sel) => 
-            product.categoryName?.toLowerCase() == sel.toLowerCase());
+        return _selectedCategories.any((sel) => _namesMatch(product.normalizedCategory, sel));
       }).toList();
 
       // Filter by rating
@@ -233,8 +232,7 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         // Filter by category
         if (_selectedCategories.isNotEmpty) {
           results = results.where((product) {
-            return _selectedCategories.any((sel) => 
-                product.categoryName?.toLowerCase() == sel.toLowerCase());
+            return _selectedCategories.any((sel) => _namesMatch(product.normalizedCategory, sel));
           }).toList();
         }
 
@@ -282,6 +280,29 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         },
       ),
     );
+  }
+
+  bool _namesMatch(String normalizedApiName, String uiName) {
+    final na = normalizedApiName;
+    final nb = Product.normalize(uiName);
+
+    if (na == nb) return true;
+    if (Product.compact(na) == Product.compact(nb)) return true;
+
+    final nbEscaped = RegExp.escape(nb);
+    final naEscaped = RegExp.escape(na);
+
+    final hasWordBInA = RegExp('\\b$nbEscaped\\b').hasMatch(na);
+    final hasWordAInB = RegExp('\\b$naEscaped\\b').hasMatch(nb);
+
+    if (hasWordBInA || hasWordAInB) return true;
+
+    if ((nb == 'men' && na.contains('women')) ||
+        (na == 'men' && nb.contains('women'))) {
+      return false;
+    }
+
+    return na.contains(nb) || nb.contains(na);
   }
 
   @override
@@ -381,12 +402,13 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
         );
       }
       return EmptySearchWidget(
-          onCategoryTap: (category) {
-            setState(() {
-              _selectedCategories = [category];
-            });
-            _performSearch('');
+        onCategoryTap: (category) {
+          setState(() {
+            _selectedCategories = [category];
           });
+          _performSearch('');
+        },
+      );
     }
 
     if (_searchResults.isNotEmpty) {

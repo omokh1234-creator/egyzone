@@ -202,6 +202,10 @@ class CartSummaryCard extends StatelessWidget {
         RegExp(r'\B(?=(\d{3})+(?!\d))'),
         (match) => ',',
       );
+      // Only show decimal part if it's not .00
+      if (parts[1] == '00') {
+        return integer;
+      }
       return '$integer.${parts[1]}';
     }
 

@@ -60,117 +60,12 @@ class CategoryProvider extends ChangeNotifier {
       // Uses ProductService which correctly calls /api/Categories
       // and returns the full nested hierarchy in one call
       _categories = await ProductService.fetchCategories();
-
-      // Populate all brands for all subcategories (workaround since API doesn't include brandId in products)
-      _populateAllBrandsForSubcategories();
     } catch (e) {
       _error = e.toString();
-      debugPrint('Error fetching categories/brands: $e');
+      debugPrint('Error fetching categories: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
-    }
-  }
-
-  void _populateBrands(List<Map<String, dynamic>> brandsData) {
-    // Create a map of brandId -> brand name
-    final Map<int, String> brandMap = {};
-    for (final brand in brandsData) {
-      final brandId = brand['brandId'] as int?;
-      final name = brand['name'] as String?;
-      if (brandId != null && name != null && name.isNotEmpty) {
-        brandMap[brandId] = name;
-      }
-    }
-
-    // Store brand map for later use in updateFromProducts
-    _brandMap = brandMap;
-  }
-
-  Map<int, String> _brandMap = {};
-
-  void _populateAllBrandsForSubcategories() {
-    // Populate brands for subcategories based on product details (workaround since API doesn't include brandId in products)
-    // Fetch product details for each product to get brand information
-    _populateBrandsFromProductDetails();
-  }
-
-  Future<void> _populateBrandsFromProductDetails() async {
-    try {
-      // Fetch all products to get their IDs
-      final products = await ProductService.fetchProducts();
-      debugPrint('Fetched ${products.length} products to extract brand information');
-
-      // Create a map of subcategoryId -> set of brandIds
-      final Map<int, Set<int>> subcategoryBrandIds = {};
-
-      // Fetch product details for each product (N+1 API calls - inefficient but necessary workaround)
-      for (final product in products) {
-        try {
-          final productDetail = await ProductService.fetchProductDetail(product.productId);
-          if (productDetail != null) {
-            final brandId = productDetail.brandId;
-            final subCategoryId = productDetail.subCategoryId;
-            if (brandId != null && subCategoryId != null && _brandMap.containsKey(brandId)) {
-              if (!subcategoryBrandIds.containsKey(subCategoryId)) {
-                subcategoryBrandIds[subCategoryId] = {};
-              }
-              subcategoryBrandIds[subCategoryId]!.add(brandId);
-            }
-          }
-        } catch (e) {
-          // Skip products that fail to fetch details
-          debugPrint('Error fetching product detail for ${product.productId}: $e');
-        }
-      }
-
-      debugPrint('Mapped brands to ${subcategoryBrandIds.length} subcategories from product details');
-
-      // Populate brands for each subcategory based on the mapping
-      for (final category in _categories) {
-        for (final subcategory in category.subCategories) {
-          final brandIds = subcategoryBrandIds[subcategory.subCategoryId] ?? {};
-          final brands = brandIds.map((brandId) => ProductBrand(
-            brandId: brandId,
-            name: _brandMap[brandId]!,
-            subCategoryId: subcategory.subCategoryId,
-          )).toList();
-
-          debugPrint('Subcategory ${subcategory.name}: ${brands.length} brands from product details');
-
-          // Update subcategory with brands
-          final updatedSubcategory = ProductSubCategory(
-            subCategoryId: subcategory.subCategoryId,
-            name: subcategory.name,
-            categoryId: subcategory.categoryId,
-            brands: brands,
-          );
-
-          // Update category with updated subcategory
-          final updatedSubcategories = category.subCategories.map((sub) {
-            if (sub.subCategoryId == subcategory.subCategoryId) {
-              return updatedSubcategory;
-            }
-            return sub;
-          }).toList();
-
-          final updatedCategory = ProductCategory(
-            categoryId: category.categoryId,
-            name: category.name,
-            subCategories: updatedSubcategories,
-          );
-
-          // Update categories list
-          final index = _categories.indexWhere((c) => c.categoryId == category.categoryId);
-          if (index != -1) {
-            _categories[index] = updatedCategory;
-          }
-        }
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error populating brands from product details: $e');
     }
   }
 
@@ -240,17 +135,12 @@ class CategoryProvider extends ChangeNotifier {
         );
       }
 
-      // 3. Ensure Brand exists in this SubCategory
+      // 3. Ensure Brand exists in this SubCategory (using brand info from product API)
+      final brandName = product.brandName?.trim();
       final brandId = product.brandId;
-      String? brandName = product.brandName?.trim();
-
-      // Try to get brand name from brand map if brandId is available
-      if (brandId != null && _brandMap.containsKey(brandId)) {
-        brandName = _brandMap[brandId];
-      }
 
       if (brandName != null && brandName.isNotEmpty) {
-        // Track brand has products
+        // Track brand has products for this subcategory
         if (!brandsWithProducts.containsKey(catKey)) {
           brandsWithProducts[catKey] = {};
         }
@@ -261,7 +151,7 @@ class CategoryProvider extends ChangeNotifier {
         brandsWithProducts[catKey]![subKey]!.add(brandKey);
 
         final hasBrand = subCategory.brands.any(
-          (b) => b.name.toLowerCase().trim() == brandName?.toLowerCase(),
+          (b) => b.name.toLowerCase().trim() == brandName.toLowerCase(),
         );
         if (!hasBrand) {
           // Get updated category
@@ -275,7 +165,7 @@ class CategoryProvider extends ChangeNotifier {
                 categoryId: sub.categoryId,
                 brands: [...sub.brands, ProductBrand(
                   brandId: brandId ?? 0,
-                  name: brandName!,
+                  name: brandName,
                   subCategoryId: sub.subCategoryId,
                 )],
               );
@@ -302,20 +192,23 @@ class CategoryProvider extends ChangeNotifier {
         final subKey = sub.name.toLowerCase().trim();
         if (!subcategoriesWithProducts[catKey]!.contains(subKey)) return null;
 
-        // Don't filter brands - show all brands for the subcategory
-        // Return new subcategory with all brands
+        // Filter brands: only keep brands that have products in this subcategory
+        final filteredBrands = sub.brands.where((brand) {
+          final brandKey = brand.name.toLowerCase().trim();
+          return brandsWithProducts[catKey]?[subKey]?.contains(brandKey) ?? false;
+        }).toList();
+
         return ProductSubCategory(
           subCategoryId: sub.subCategoryId,
           name: sub.name,
           categoryId: sub.categoryId,
-          brands: sub.brands,
+          brands: filteredBrands,
         );
       }).whereType<ProductSubCategory>().toList();
 
       // Also remove categories that end up with no subcategories after filtering
       if (filteredSubCategories.isEmpty) return null;
 
-      // Return new category with filtered subcategories
       return ProductCategory(
         categoryId: cat.categoryId,
         name: cat.name,

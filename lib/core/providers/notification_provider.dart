@@ -33,9 +33,9 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   /// Mark a notification as read (optimistic update + API call)
-  Future<void> markAsRead(dynamic notificationId) async {
+  Future<void> markAsRead(int notificationId) async {
     final index = _notifications.indexWhere(
-      (n) => n.notificationId.toString() == notificationId.toString(),
+      (n) => n.notificationId == notificationId,
     );
 
     if (index >= 0 && !_notifications[index].isRead) {
@@ -54,14 +54,14 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   /// Delete a notification (optimistic update + API call)
-  Future<void> deleteNotification(dynamic notificationId) async {
+  Future<void> deleteNotification(int notificationId) async {
     final removed = _notifications
-        .where((n) => n.notificationId.toString() == notificationId.toString())
+        .where((n) => n.notificationId == notificationId)
         .toList();
 
     // Optimistic update
     _notifications.removeWhere(
-      (n) => n.notificationId.toString() == notificationId.toString(),
+      (n) => n.notificationId == notificationId,
     );
     notifyListeners();
 

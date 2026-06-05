@@ -57,6 +57,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
           showBackButton: false,
           showSearchButton: false,
           showCartButton: false,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () => Navigator.pushNamed(context, '/notifications-screen'),
+            ),
+          ],
         ),
         body: _isLoadingDashboard
             ? const Center(child: CircularProgressIndicator())

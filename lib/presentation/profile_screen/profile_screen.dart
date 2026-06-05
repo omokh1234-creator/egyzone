@@ -1110,7 +1110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         children: [
                           Text(
-                            'ج.م ',
+                            'ج.م  ',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) * 0.6,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -1118,7 +1118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           Text(
-                            price.toStringAsFixed(2),
+                            price.toStringAsFixed(2).replaceAll('.00', ''),
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.primary,
                               fontWeight: FontWeight.w100,
@@ -1172,6 +1172,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Saved Items',
               badge: savedProvider.items.length.toString(),
               onTap: () => _showWishlist(),
+            ),
+            ProfileMenuItem(
+              icon: 'notifications',
+              title: 'Notifications',
+              onTap: () => Navigator.pushNamed(context, '/notifications-screen'),
             ),
             ProfileMenuItem(
               icon: 'notifications',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
 import '../../core/providers/notification_provider.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../widgets/custom_app_bar.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: CustomAppBar(
         title: 'Notifications',
         showBackButton: true,
+        showSearchButton: false,
         showCartButton: false,
         actions: [
           Consumer<NotificationProvider>(
@@ -48,56 +50,85 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: Consumer<NotificationProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (provider.error != null && provider.notifications.isEmpty) {
+      body: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          if (!authProvider.isLoggedIn) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                  Icon(
+                    Icons.lock_outline,
+                    size: 64,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
                   SizedBox(height: 16),
                   Text(
-                    'Failed to load notifications',
-                    style: theme.textTheme.titleMedium,
+                    'Sign in for notification access',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
+                  SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => provider.fetchNotifications(),
-                    child: const Text('Try Again'),
+                    onPressed: () => Navigator.pushNamed(context, '/login-screen'),
+                    child: Text('Sign In'),
                   ),
                 ],
               ),
             );
           }
 
-          if (provider.notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.notifications_none_outlined,
-                      size: 64,
-                      color: colorScheme.primary.withValues(alpha: 0.3),
-                    ),
+          return Consumer<NotificationProvider>(
+            builder: (context, provider, _) {
+              if (provider.isLoading && provider.notifications.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (provider.error != null && provider.notifications.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                      SizedBox(height: 16),
+                      Text(
+                        'Failed to load notifications',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      TextButton(
+                        onPressed: () => provider.fetchNotifications(),
+                        child: const Text('Try Again'),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 24),
-                  Text(
-                    'No notifications yet',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                );
+              }
+
+              if (provider.notifications.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.notifications_none_outlined,
+                          size: 64,
+                          color: colorScheme.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        'No notifications yet',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -112,17 +143,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () => provider.fetchNotifications(),
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              itemCount: provider.notifications.length,
-              separatorBuilder: (context, index) => SizedBox(height: 1.h),
-              itemBuilder: (context, index) {
-                final notification = provider.notifications[index];
-                return _NotificationTile(notification: notification);
-              },
-            ),
+              return RefreshIndicator(
+                onRefresh: () => provider.fetchNotifications(),
+                child: ListView.separated(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                  itemCount: provider.notifications.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 1.h),
+                  itemBuilder: (context, index) {
+                    final notification = provider.notifications[index];
+                    return _NotificationTile(notification: notification);
+                  },
+                ),
+              );
+            },
           );
         },
       ),
@@ -204,7 +237,7 @@ class _NotificationTile extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Notification',
+                            notification.title ?? 'Notification',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
                               color: isRead ? colorScheme.onSurfaceVariant : colorScheme.onSurface,

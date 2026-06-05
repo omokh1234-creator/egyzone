@@ -181,7 +181,7 @@ class _SellerInventoryScreenState extends State<SellerInventoryScreen> {
                             ),
                           ),
                           title: Text(product.name),
-                          subtitle: Text('EGP ${product.price.toStringAsFixed(2)}'),
+                          subtitle: Text('EGP ${product.price.toStringAsFixed(2).replaceAll('.00', '')}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [

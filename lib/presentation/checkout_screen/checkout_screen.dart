@@ -497,7 +497,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _buildReviewSection('Payment Method', _selectedPaymentMethod),
         const Divider(),
         _buildReviewSection(
-            'Order Total', 'ج.م ${widget.total.toStringAsFixed(2)}'),
+            'Order Total', 'ج.م  ${widget.total.toStringAsFixed(2).replaceAll('.00', '')}'),
       ],
     );
   }

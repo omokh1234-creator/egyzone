@@ -49,7 +49,7 @@ class _CartScreenState extends State<CartScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Coupon applied! You save ج.م ${cartProvider.discount.toStringAsFixed(2)}'),
+                'Coupon applied! You save ج.م  ${cartProvider.discount.toStringAsFixed(2).replaceAll('.00', '')}'),
             duration: const Duration(seconds: 2),
           ),
         );

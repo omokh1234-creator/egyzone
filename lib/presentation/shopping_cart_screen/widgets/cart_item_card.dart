@@ -29,10 +29,13 @@ class CartItemCard extends StatelessWidget {
       (match) => ',',
     );
 
+    // Only show decimal part if it's not .00
+    final priceText = parts[1] == '00' ? integer : '$integer.${parts[1]}';
+
     return Row(
       children: [
         Text(
-          'ج.م ',
+          'ج.م  ',
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) * 0.8,
             color: theme.colorScheme.onSurfaceVariant,
@@ -40,7 +43,7 @@ class CartItemCard extends StatelessWidget {
           ),
         ),
         Text(
-          '$integer.${parts[1]}',
+          priceText,
           style: theme.textTheme.titleMedium?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w600,

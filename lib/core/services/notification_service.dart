@@ -24,7 +24,7 @@ class NotificationService {
   }
 
   /// Mark a notification as read
-  static Future<void> markAsRead(dynamic notificationId) async {
+  static Future<void> markAsRead(int notificationId) async {
     final headers = await AuthService.authHeaders;
     final response = await http.put(
       Uri.parse(
@@ -39,7 +39,7 @@ class NotificationService {
   }
 
   /// Delete a notification
-  static Future<void> deleteNotification(dynamic notificationId) async {
+  static Future<void> deleteNotification(int notificationId) async {
     final headers = await AuthService.authHeaders;
     final response = await http.delete(
       Uri.parse(
@@ -50,6 +50,20 @@ class NotificationService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception(
           'Failed to delete notification: ${response.statusCode}');
+    }
+  }
+
+  /// Mark all notifications as read
+  static Future<void> markAllAsRead() async {
+    final headers = await AuthService.authHeaders;
+    final response = await http.put(
+      Uri.parse('${AuthService.baseUrl}/api/Notifications/read-all'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+          'Failed to mark all notifications as read: ${response.statusCode}');
     }
   }
 }

@@ -80,7 +80,7 @@ class EmptySearchWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => onCategoryTap?.call(categoryName),
+            onTap: () => Navigator.pushNamed(context, '/search-screen', arguments: {'category': categoryName}),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -126,7 +126,7 @@ class EmptySearchWidget extends StatelessWidget {
                 children: subCategories.map((sub) {
                   final subName = sub.name as String;
                   return InkWell(
-                    onTap: () => onCategoryTap?.call(categoryName),
+                    onTap: () => Navigator.pushNamed(context, '/search-screen', arguments: {'category': categoryName}),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
