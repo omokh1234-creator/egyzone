@@ -170,9 +170,40 @@ class ProductService {
 
     // Response: {"message": "...", "data": [...]} OR plain [...] 
     final List<dynamic> data = AuthService.parseResponseList(response.body);
-    return data
+    var products = data
         .map((item) => Product.fromJson(item as Map<String, dynamic>))
         .toList();
+
+    // Client-side fallback filter if the API ignores the isApproved query parameter
+    if (isApproved != null) {
+      products = products.where((p) => p.isApproved == isApproved).toList();
+    }
+
+    return products;
+  }
+
+  /// Fetches ALL products by paginating through every page.
+  ///
+  /// Keeps requesting pages until a page returns fewer items than [batchSize],
+  /// which signals the last page. This guarantees every product is included
+  /// regardless of total count.
+  static Future<List<Product>> fetchAllProducts({
+    bool? isApproved,
+    int batchSize = 100,
+  }) async {
+    final all = <Product>[];
+    int page = 1;
+    while (true) {
+      final batch = await fetchProducts(
+        isApproved: isApproved,
+        page: page,
+        pageSize: batchSize,
+      );
+      all.addAll(batch);
+      if (batch.length < batchSize) break; // last page reached
+      page++;
+    }
+    return all;
   }
 
   /// Fetches a single product's details.

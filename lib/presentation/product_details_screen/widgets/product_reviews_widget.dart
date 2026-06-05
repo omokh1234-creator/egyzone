@@ -64,38 +64,6 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
     }
   }
 
-  Future<void> _deleteReview(int reviewId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Review'),
-        content: const Text('Are you sure you want to delete your review?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final success = await ReviewService.deleteReview(reviewId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Review deleted' : 'Failed to delete review'),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-        if (success) _fetchReviews();
-      }
-    }
-  }
 
   Future<void> _reportReview(int reviewId) async {
     final authProvider = context.read<AuthProvider>();
@@ -169,89 +137,6 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
         }
       }
     }
-  }
-
-  void _editReview(ProductReview review) {
-    int selectedRating = review.rating;
-    final commentController = TextEditingController(text: review.comment);
-    bool isSubmitting = false;
-    final theme = Theme.of(context);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Edit Review', style: theme.textTheme.titleLarge),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 4.0,
-                    children: List.generate(5, (index) {
-                      return GestureDetector(
-                        onTap: () => setState(() => selectedRating = index + 1),
-                        child: Icon(
-                          index < selectedRating ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
-                          size: 32,
-                        ),
-                      );
-                    }),
-                  ),
-                  SizedBox(height: 2.h),
-                  TextField(
-                    controller: commentController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Update your thoughts...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          setState(() => isSubmitting = true);
-                          final success = await ReviewService.updateReview(
-                            review.reviewId!,
-                            selectedRating,
-                            commentController.text.trim(),
-                          );
-                          if (context.mounted) {
-                            if (success) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Review updated')),
-                              );
-                              _fetchReviews();
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Update failed')),
-                              );
-                              setState(() => isSubmitting = false);
-                            }
-                          }
-                        },
-                  child: Text(isSubmitting ? 'Updating...' : 'Save Changes'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
   }
 
   @override
@@ -354,10 +239,6 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
               itemCount: _reviews.length,
               itemBuilder: (context, index) {
                 final review = _reviews[index];
-                // Force Ownership Logic: 
-                // If IDs match, it's definitely yours.
-                // If the review has NO userId (null or 0), we allow you to TRY deleting it 
-                // because it might be an 'orphaned' review from your account.
                 final bool isPossiblyMine = review.userId == null || review.userId == 0;
                 final bool isOwner = currentUserId != null && 
                     (review.userId?.toString() == currentUserId || isPossiblyMine);
@@ -365,8 +246,6 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
                 return _ReviewItem(
                   review: review,
                   isOwner: isOwner,
-                  onDelete: () => _deleteReview(review.reviewId!),
-                  onEdit: () => _editReview(review),
                   onReport: () => _reportReview(review.reviewId!),
                 );
               },
@@ -506,15 +385,11 @@ class _ProductReviewsWidgetState extends State<ProductReviewsWidget> {
 class _ReviewItem extends StatelessWidget {
   final ProductReview review;
   final bool isOwner;
-  final VoidCallback onDelete;
-  final VoidCallback onEdit;
   final VoidCallback onReport;
 
   const _ReviewItem({
     required this.review,
     required this.isOwner,
-    required this.onDelete,
-    required this.onEdit,
     required this.onReport,
   });
 
@@ -573,28 +448,7 @@ class _ReviewItem extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isOwner)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit_outlined, color: theme.colorScheme.primary, size: 20),
-                      onPressed: onEdit,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Edit my review',
-                    ),
-                    SizedBox(width: 2.w),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                      onPressed: onDelete,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Delete my review',
-                    ),
-                  ],
-                )
-              else
+              if (!isOwner)
                 IconButton(
                   icon: Icon(Icons.flag_outlined, color: theme.colorScheme.onSurfaceVariant, size: 20),
                   onPressed: onReport,

@@ -196,26 +196,45 @@ class AdminService {
     return response.statusCode == 200 || response.statusCode == 204;
   }
 
-  /// PUT /api/Coupons/{id}
-  static Future<bool> updateCoupon(int couponId, {
-    String? code,
-    int? discountPercent,
-    DateTime? expiryDate,
-    int? maxUsage,
-    bool? isPercentage,
-  }) async {
-    final body = jsonEncode({
-      if (code != null) 'code': code,
-      if (discountPercent != null) 'discountPercent': discountPercent,
-      if (expiryDate != null) 'expiryDate': expiryDate.toIso8601String(),
-      if (maxUsage != null) 'maxUsage': maxUsage,
-      if (isPercentage != null) 'isPercentage': isPercentage,
-    });
-
-    final response = await http.put(
-      Uri.parse('${AuthService.baseUrl}/api/Coupons/$couponId'),
+  // ─── Seller Applications ─────────────────────────────────────────────────
+  /// GET /api/Admin/sellers/pending
+  static Future<List<dynamic>> getPendingSellers() async {
+    final response = await http.get(
+      Uri.parse('$_base/sellers/pending'),
       headers: await AuthService.authHeaders,
-      body: body,
+    );
+    if (response.statusCode == 200) {
+      return AuthService.parseResponseList(response.body);
+    }
+    return [];
+  }
+
+  /// GET /api/Admin/sellers/applications?status=
+  static Future<List<dynamic>> getSellerApplications({String? status}) async {
+    final uri = Uri.parse('$_base/sellers/applications').replace(
+      queryParameters: status != null && status.isNotEmpty ? {'status': status} : null,
+    );
+    final response = await http.get(uri, headers: await AuthService.authHeaders);
+    if (response.statusCode == 200) {
+      return AuthService.parseResponseList(response.body);
+    }
+    return [];
+  }
+
+  /// PUT /api/Admin/sellers/{id}/approve
+  static Future<bool> approveSeller(int id) async {
+    final response = await http.put(
+      Uri.parse('$_base/sellers/$id/approve'),
+      headers: await AuthService.authHeaders,
+    );
+    return response.statusCode == 200 || response.statusCode == 204;
+  }
+
+  /// PUT /api/Admin/sellers/{id}/reject
+  static Future<bool> rejectSeller(int id) async {
+    final response = await http.put(
+      Uri.parse('$_base/sellers/$id/reject'),
+      headers: await AuthService.authHeaders,
     );
     return response.statusCode == 200 || response.statusCode == 204;
   }

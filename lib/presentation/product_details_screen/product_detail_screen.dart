@@ -328,6 +328,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     reviewCount: _dynamicReviewCount ??
                         (_productData['reviewCount'] as int? ?? 0),
                     inStock: inStock,
+                    stock: stock,
                     sellerName: _dynamicSellerName,
                     brandName: _dynamicBrandName,
                   ),

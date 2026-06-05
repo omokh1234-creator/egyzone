@@ -16,6 +16,8 @@ import 'package:egyzone/presentation/admin_screen/admin_moderation_screen.dart';
 import 'package:egyzone/presentation/seller_screen/add_product_screen.dart';
 import 'package:egyzone/presentation/seller_screen/edit_product_screen.dart';
 import 'package:egyzone/presentation/admin_screen/create_coupon_screen.dart';
+import 'package:egyzone/presentation/seller_screen/seller_orders_screen.dart';
+import 'package:egyzone/presentation/seller_screen/seller_edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:egyzone/core/providers/auth_provider.dart';
@@ -42,6 +44,8 @@ class AppRoutes {
   static const String addProduct = '/seller/add-product';
   static const String editProduct = '/seller/edit-product';
   static const String createCoupon = '/admin/create-coupon';
+  static const String sellerOrders = '/seller/orders';
+  static const String sellerEditProfile = '/seller/edit-profile';
 
   static final Map<String, WidgetBuilder> routes = {
     splash: (context) => const SplashScreen(),
@@ -85,6 +89,8 @@ class AppRoutes {
       return EditProductScreen(productData: args ?? {});
     },
     createCoupon: (context) => const CreateCouponScreen(),
+    sellerOrders: (context) => const SellerOrdersScreen(),
+    sellerEditProfile: (context) => const SellerEditProfileScreen(),
   };
 
   static void navigateToRoot(BuildContext context) {

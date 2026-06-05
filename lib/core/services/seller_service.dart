@@ -17,7 +17,7 @@ class SellerService {
     String? categoryName,
     String? subCategoryName,
     int? brandId,
-    List<String> specifications = const [],
+    List<Map<String, String>> specifications = const [],
   }) async {
     final url = Uri.parse('${AuthService.baseUrl}/api/Products');
     final headers = await AuthService.authHeaders;
@@ -39,10 +39,10 @@ class SellerService {
     if (categoryName != null) request.fields['CategoryName'] = categoryName;
     if (subCategoryName != null) request.fields['SubCategoryName'] = subCategoryName;
 
-    // Add specifications as individual fields if the API expects them that way,
-    // or as a list if supported. Swagger says "items: { type: string }".
+    // Add specifications as label:value pairs
     for (var i = 0; i < specifications.length; i++) {
-      request.fields['Specifications[$i]'] = specifications[i];
+      request.fields['Specifications[$i].Label'] = specifications[i]['label'] ?? '';
+      request.fields['Specifications[$i].Value'] = specifications[i]['value'] ?? '';
     }
 
     // Add image files
@@ -161,5 +161,28 @@ class SellerService {
       }
     } catch (_) {}
     return null;
+  }
+
+  /// Update seller profile
+  /// PUT /api/Sellers/my-profile
+  static Future<bool> updateSellerProfile({
+    required String storeName,
+    String? description,
+    String? contactNumber,
+  }) async {
+    try {
+      final headers = await AuthService.authHeaders;
+      final response = await http.put(
+        Uri.parse('${AuthService.baseUrl}/api/Sellers/my-profile'),
+        headers: headers,
+        body: jsonEncode({
+          'storeName': storeName,
+          if (description != null) 'description': description,
+          if (contactNumber != null) 'contactNumber': contactNumber,
+        }),
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {}
+    return false;
   }
 }

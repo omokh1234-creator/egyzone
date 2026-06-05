@@ -82,10 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() => _isLoadingProducts = true);
     try {
-      final products = await ProductService.fetchProducts(
-        isApproved: true,
-        pageSize: 100,
-      );
+      // fetchAllProducts paginates through every page so no product is missed
+      final products = await ProductService.fetchAllProducts(isApproved: true);
       if (mounted) {
         // Sort by productId descending so latest products are at the top
         _allProducts = products..sort((a, b) => b.productId.compareTo(a.productId));

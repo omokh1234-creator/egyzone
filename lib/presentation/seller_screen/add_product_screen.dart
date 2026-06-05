@@ -38,6 +38,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _isLoadingBrands = false;
 
   final ImagePicker _picker = ImagePicker();
+  
+  final List<Map<String, TextEditingController>> _specs = [];
 
   @override
   void initState() {
@@ -85,6 +87,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void _removeImage(int index) {
     setState(() {
       _selectedImages.removeAt(index);
+    });
+  }
+
+  void _addSpec() {
+    setState(() {
+      _specs.add({
+        'label': TextEditingController(),
+        'value': TextEditingController(),
+      });
+    });
+  }
+
+  void _removeSpec(int index) {
+    setState(() {
+      _specs[index]['label']?.dispose();
+      _specs[index]['value']?.dispose();
+      _specs.removeAt(index);
     });
   }
 
@@ -148,6 +167,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
         subCategoryName: _useNewSubCategory ? _newSubCategoryController.text.trim() : null,
         brandId: finalBrandId,
         imagePaths: _selectedImages.map((e) => e.path).toList(),
+        specifications: _specs
+            .where((s) => s['label']!.text.trim().isNotEmpty && s['value']!.text.trim().isNotEmpty)
+            .map((s) => {
+                  'label': s['label']!.text.trim(),
+                  'value': s['value']!.text.trim(),
+                })
+            .toList(),
       );
 
       if (success && mounted) {
@@ -254,6 +280,57 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 maxLines: 5,
                 validator: (v) => v!.isEmpty ? 'Description is required' : null,
               ),
+              SizedBox(height: 3.h),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Specifications',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  TextButton.icon(
+                    onPressed: _addSpec,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Spec'),
+                  ),
+                ],
+              ),
+              if (_specs.isEmpty)
+                Text(
+                  'No specifications added.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                )
+              else
+                ...List.generate(_specs.length, (index) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 1.5.h),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _specs[index]['label']!,
+                            label: 'Label',
+                            hint: 'e.g. Color',
+                          ),
+                        ),
+                        SizedBox(width: 2.w),
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _specs[index]['value']!,
+                            label: 'Value',
+                            hint: 'e.g. Red',
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                          onPressed: () => _removeSpec(index),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
               SizedBox(height: 4.h),
               
               SizedBox(

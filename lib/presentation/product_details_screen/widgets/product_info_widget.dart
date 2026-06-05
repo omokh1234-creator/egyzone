@@ -13,6 +13,7 @@ class ProductInfoWidget extends StatelessWidget {
   final double rating;
   final int reviewCount;
   final bool inStock;
+  final int stock;
   final String? sellerName;
   final String? brandName;
 
@@ -24,6 +25,7 @@ class ProductInfoWidget extends StatelessWidget {
     required this.rating,
     required this.reviewCount,
     required this.inStock,
+    required this.stock,
     this.sellerName,
     this.brandName,
   });
@@ -216,7 +218,7 @@ class ProductInfoWidget extends StatelessWidget {
               ),
               SizedBox(width: 2.w),
               Text(
-                inStock ? 'In Stock' : 'Out of Stock',
+                inStock ? 'In Stock ($stock available)' : 'Out of Stock',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: inStock

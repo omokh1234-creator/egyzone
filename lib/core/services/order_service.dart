@@ -77,4 +77,39 @@ class OrderService {
       throw Exception(errorMessage);
     }
   }
+
+  /// Fetch all orders for the seller's products
+  static Future<List<Order>> getSellerOrders() async {
+    final headers = await AuthService.authHeaders;
+    final response = await http.get(
+      Uri.parse('${AuthService.baseUrl}/api/Orders/seller-orders'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = AuthService.parseResponseList(response.body);
+      return data
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to load seller orders: ${response.statusCode}');
+    }
+  }
+
+  /// Update order status (seller action: e.g. Shipped, Delivered)
+  static Future<void> updateOrderStatus(int orderId, String status) async {
+    final headers = await AuthService.authHeaders;
+    final response = await http.put(
+      Uri.parse('${AuthService.baseUrl}/api/Orders/$orderId/status'),
+      headers: headers,
+      body: jsonEncode({'status': status}),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      String errorMessage = 'Failed to update order status: ${response.statusCode}';
+      try {
+        final data = jsonDecode(response.body);
+        if (data['message'] != null) errorMessage = data['message'];
+      } catch (_) {}
+      throw Exception(errorMessage);
+    }
+  }
 }

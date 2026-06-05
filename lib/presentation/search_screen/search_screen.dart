@@ -82,10 +82,8 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
   Future<void> _fetchProducts() async {
     setState(() => _isLoadingProducts = true);
     try {
-      final products = await ProductService.fetchProducts(
-        isApproved: true,
-        pageSize: 1000,
-      );
+      // fetchAllProducts paginates through every page so no product is missed
+      final products = await ProductService.fetchAllProducts(isApproved: true);
       if (mounted) {
         setState(() {
           _allProducts = products;
@@ -102,17 +100,26 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
   Future<void> _performApiSearch(String query) async {
     setState(() => _isSearching = true);
     try {
-      final products = await ProductService.fetchProducts(
-        search: query.isEmpty ? null : query,
-        minPrice: _priceRange.start > 0 ? _priceRange.start : null,
-        maxPrice: _priceRange.end < 20000 ? _priceRange.end : null,
-        isApproved: true,
-        pageSize: 1000,
-      );
-      
+      // Paginate through all search result pages
+      final all = <Product>[];
+      int page = 1;
+      const batchSize = 100;
+      while (true) {
+        final batch = await ProductService.fetchProducts(
+          search: query.isEmpty ? null : query,
+          minPrice: _priceRange.start > 0 ? _priceRange.start : null,
+          maxPrice: _priceRange.end < 20000 ? _priceRange.end : null,
+          isApproved: true,
+          page: page,
+          pageSize: batchSize,
+        );
+        all.addAll(batch);
+        if (batch.length < batchSize) break; // last page
+        page++;
+      }
       if (mounted) {
         setState(() {
-          _searchResults = products;
+          _searchResults = all;
           _isSearching = false;
         });
       }
@@ -152,14 +159,27 @@ class _SearchScreenState extends State<SearchScreen> with WidgetsBindingObserver
       return;
     }
 
+    // Capture provider reference before async gap to avoid context-across-async-gap lint
+    final categoryProvider = context.read<CategoryProvider>();
+
     // Use API to get search results for suggestions
     _performApiSearch(query).then((_) {
+      if (!mounted) return;
       final tempSuggestions = <Map<String, dynamic>>[];
-      final categoryProvider = context.read<CategoryProvider>();
 
-      // Add category suggestions with subcategories
+      // Categories to exclude from suggestions
+      const excludedCategories = {
+        'furniture',
+        'home & furniture',
+        'home and furniture',
+      };
+
+      // Add category suggestions with subcategories (excluding furniture)
       final lowerQuery = query.toLowerCase();
       for (final category in categoryProvider.categories) {
+        final catLower = category.name.toLowerCase().trim();
+        // Skip furniture-related categories
+        if (excludedCategories.any((ex) => catLower.contains('furnitur'))) continue;
         if (category.name.toLowerCase().contains(lowerQuery)) {
           final subCategories = category.subCategories.map((s) => s.name).toList();
           tempSuggestions.add({

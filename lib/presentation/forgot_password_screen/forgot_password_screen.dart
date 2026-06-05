@@ -83,6 +83,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
+    if (newPassword.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -273,6 +280,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     TextButton(
                       onPressed: () => setState(() => _emailSent = false),
                       child: const Text('Use a different email'),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Resend Token'),
+                      onPressed: _isLoading ? null : _sendResetLink,
                     ),
                   ],
 

@@ -8,6 +8,7 @@ import '../../widgets/custom_bottom_bar.dart';
 import 'admin_users_tab.dart';
 import 'admin_products_tab.dart';
 import 'admin_reports_tab.dart';
+import 'admin_sellers_tab.dart';
 import 'admin_coupons_tab.dart';
 
 class AdminModerationScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
     return PopScope(
       canPop: false,
       child: DefaultTabController(
-        length: 5,
+        length: 6,
         child: Scaffold(
           backgroundColor: colorScheme.surface,
           appBar: AppBar(
@@ -79,6 +80,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
                 Tab(icon: Icon(Icons.people), text: 'Users'),
                 Tab(icon: Icon(Icons.inventory), text: 'Products'),
                 Tab(icon: Icon(Icons.report_problem), text: 'Reports'),
+                Tab(icon: Icon(Icons.store), text: 'Sellers'),
                 Tab(icon: Icon(Icons.confirmation_number), text: 'Coupons'),
               ],
             ),
@@ -89,6 +91,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
               const AdminUsersTab(),
               const AdminProductsTab(),
               const AdminReportsTab(),
+              const AdminSellersTab(),
               const AdminCouponsTab(),
             ],
           ),
